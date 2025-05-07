@@ -1,8 +1,8 @@
-import { createClient } from '@/utils/supabase/server';
-
-export default async function Instruments() {
-  const supabase = await createClient();
-  const { data: instruments } = await supabase.from("instruments").select();
-
-  return <pre>{JSON.stringify(instruments, null, 2)}</pre>
+export default function Home() {
+  return (
+    <main>
+      <h1>Welcome to the The LivingTree</h1>
+      
+    </main>
+  )
 }
