@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from '@/components/theme-provider';
 import "./globals.css";
-import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "The LivingTree",
