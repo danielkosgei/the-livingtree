@@ -1,8 +1,10 @@
-import { createClient } from '@/utils/supabase/server';
 
-export default async function Instruments() {
-  const supabase = await createClient();
-  const { data: instruments } = await supabase.from("instruments").select();
+import { ModeToggle } from '@/components/mode-toggle';
 
-  return <pre>{JSON.stringify(instruments, null, 2)}</pre>
+export default function Home() {
+  return (
+    <>
+    <ModeToggle />
+    </>
+  )
 }
