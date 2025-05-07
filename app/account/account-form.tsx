@@ -34,6 +34,7 @@ export default function AccountForm({ user }: { user: User | null }) {
         setWebsite(data.website)
         setAvatarUrl(data.avatar_url)
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert('Error loading user data!')
     } finally {
@@ -66,6 +67,7 @@ export default function AccountForm({ user }: { user: User | null }) {
         avatar_url,
         updated_at: new Date().toISOString(),
       })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       if (error) throw error
       alert('Profile updated!')
     } catch (error) {
