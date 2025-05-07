@@ -1,65 +1,182 @@
--- Represents a person in the tree. May or may not be linked to an actual Supabase user.
-create table nodes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users on delete set null,
-  full_name text not null,
+-- ========== EXTENSIONS ==========
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ========== ENUM TYPES ==========
+CREATE TYPE redaction_level AS ENUM ('none', 'partial', 'full');
+CREATE TYPE privacy_level AS ENUM ('public', 'cluster_only', 'private');
+CREATE TYPE relationship_type AS ENUM (
+  'parent', 'child', 'sibling', 'spouse',
+  'uncle', 'aunt', 'cousin', 'grandparent', 'grandchild',
+  'in_law', 'niece', 'nephew'
+);
+CREATE TYPE cluster_role AS ENUM ('member', 'moderator', 'admin');
+CREATE TYPE invite_status AS ENUM ('pending', 'accepted', 'rejected');
+CREATE TYPE vote_value AS ENUM ('approve', 'reject');
+
+-- ========== TABLES ==========
+
+-- Nodes (people in the tree)
+CREATE TABLE nodes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users ON DELETE SET NULL,
+  full_name text NOT NULL,
   birth_date date,
   death_date date,
-  redaction redaction_level default 'none',
-  privacy privacy_level default 'cluster_only',
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+  redaction redaction_level DEFAULT 'none',
+  privacy privacy_level DEFAULT 'cluster_only',
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
 );
 
--- Each row connects two people and defines a relationship
-create table relationships (
-  id uuid primary key default gen_random_uuid(),
-  node_id_1 uuid references nodes(id) on delete cascade,
-  node_id_2 uuid references nodes(id) on delete cascade,
-  type relationship_type not null,
-  created_at timestamp with time zone default now(),
-
-  constraint unique_relationship unique (node_id_1, node_id_2, type),
-  constraint no_self_link check (node_id_1 != node_id_2)
+-- Relationships between nodes
+CREATE TABLE relationships (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  node_id_1 uuid REFERENCES nodes(id) ON DELETE CASCADE,
+  node_id_2 uuid REFERENCES nodes(id) ON DELETE CASCADE,
+  type relationship_type NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT unique_relationship UNIQUE (node_id_1, node_id_2, type),
+  CONSTRAINT no_self_link CHECK (node_id_1 != node_id_2)
 );
 
--- Family units, sibling groups, cousin rings, etc.
-create table clusters (
-  id uuid primary key default gen_random_uuid(),
+-- Clusters (groups of relatives)
+CREATE TABLE clusters (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text,
   description text,
-  created_by uuid references nodes(id) on delete set null,
-  created_at timestamp with time zone default now()
+  created_by uuid REFERENCES nodes(id) ON DELETE SET NULL,
+  created_at timestamp with time zone DEFAULT now()
 );
 
--- Associate nodes with clusters adn assign a role to each node in the cluster
-create table cluster_memberships (
-  id uuid primary key default gen_random_uuid(),
-  cluster_id uuid references clusters(id) on delete cascade,
-  node_id uuid references nodes(id) on delete cascade,
-  role cluster_role default 'member',
-  joined_at timestamp with time zone default now(),
-  unique (cluster_id, node_id)
+-- Memberships of nodes in clusters
+CREATE TABLE cluster_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  cluster_id uuid REFERENCES clusters(id) ON DELETE CASCADE,
+  node_id uuid REFERENCES nodes(id) ON DELETE CASCADE,
+  role cluster_role DEFAULT 'member',
+  joined_at timestamp with time zone DEFAULT now(),
+  UNIQUE (cluster_id, node_id)
 );
 
--- Used to onboard new users into the tree via invite links
-create table invites (
-  id uuid primary key default gen_random_uuid(),
-  invited_by uuid references nodes(id) on delete cascade,
+-- Memories shared within clusters
+CREATE TABLE memories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  content_url text,
+  created_by uuid REFERENCES nodes(id),
+  cluster_id uuid REFERENCES clusters(id) ON DELETE CASCADE,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Invites for onboarding
+CREATE TABLE invites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  invited_by uuid REFERENCES nodes(id) ON DELETE CASCADE,
   invitee_email text,
-  invite_code text unique not null,
-  status invite_status default 'pending',
-  created_at timestamp with time zone default now(),
+  invite_code text UNIQUE NOT NULL,
+  status invite_status DEFAULT 'pending',
+  created_at timestamp with time zone DEFAULT now(),
   accepted_at timestamp with time zone
 );
 
--- Used to track votes on nodes in a cluster
-create table votes (
-  id uuid primary key default gen_random_uuid(),
-  cluster_id uuid references clusters(id) on delete cascade,
-  voter_node_id uuid references nodes(id) on delete cascade,
-  target_node_id uuid references nodes(id) on delete cascade,
-  vote vote_value not null,
-  created_at timestamp with time zone default now(),
-  constraint one_vote_per_target_per_voter unique (cluster_id, voter_node_id, target_node_id)
+-- Votes for consensus actions
+CREATE TABLE votes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  cluster_id uuid REFERENCES clusters(id) ON DELETE CASCADE,
+  voter_node_id uuid REFERENCES nodes(id) ON DELETE CASCADE,
+  target_node_id uuid REFERENCES nodes(id) ON DELETE CASCADE,
+  vote vote_value NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT one_vote_per_target_per_voter UNIQUE (cluster_id, voter_node_id, target_node_id)
 );
+
+-- ========== RLS POLICIES ==========
+
+-- Enable RLS
+ALTER TABLE nodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clusters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cluster_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
+
+-- Nodes: SELECT if user shares a cluster
+CREATE POLICY "Users can view nodes in shared clusters"
+  ON nodes FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM cluster_members cm
+      WHERE cm.node_id = nodes.id
+      AND cm.cluster_id IN (
+        SELECT cluster_id FROM cluster_members
+        WHERE node_id = auth.uid()::uuid
+      )
+    )
+  );
+
+-- Nodes: UPDATE if user owns the node
+CREATE POLICY "Users can update their own node"
+  ON nodes FOR UPDATE
+  USING (nodes.user_id = auth.uid()::uuid);
+
+-- Nodes: DELETE if user owns the node
+CREATE POLICY "Users can delete their own node"
+  ON nodes FOR DELETE
+  USING (nodes.user_id = auth.uid()::uuid);
+
+-- Relationships: view own connections
+CREATE POLICY "View relationships involving self"
+  ON relationships FOR SELECT
+  USING (
+    relationships.node_id_1 = auth.uid()::uuid
+    OR relationships.node_id_2 = auth.uid()::uuid
+  );
+
+-- Clusters: view if member
+CREATE POLICY "View clusters where member"
+  ON clusters FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM cluster_members
+      WHERE cluster_id = clusters.id
+      AND node_id = auth.uid()::uuid
+    )
+  );
+
+-- Cluster Members: view members in own clusters
+CREATE POLICY "View members in own clusters"
+  ON cluster_members FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM cluster_members cm
+      WHERE cm.node_id = auth.uid()::uuid
+      AND cm.cluster_id = cluster_members.cluster_id
+    )
+  );
+
+-- Cluster Members: insert if node matches
+CREATE POLICY "Join cluster if node matches"
+  ON cluster_members FOR INSERT
+  WITH CHECK (node_id = auth.uid()::uuid);
+
+-- Memories: view if in cluster
+CREATE POLICY "View memories in clusters"
+  ON memories FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM cluster_members
+      WHERE cluster_id = memories.cluster_id
+      AND node_id = auth.uid()::uuid
+    )
+  );
+
+-- Memories: insert if in cluster
+CREATE POLICY "Add memories to cluster"
+  ON memories FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM cluster_members
+      WHERE cluster_id = memories.cluster_id
+      AND node_id = auth.uid()::uuid
+    )
+  );
