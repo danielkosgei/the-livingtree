@@ -1,10 +1,9 @@
-
-import { ModeToggle } from '@/components/mode-toggle';
+import { FamilyTree } from '@/components/family-tree'
 
 export default function Home() {
   return (
-    <>
-    <ModeToggle />
-    </>
+    <main className="container py-10">
+      <FamilyTree />
+    </main>
   )
 }
