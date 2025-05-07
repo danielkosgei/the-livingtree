@@ -1,4 +1,4 @@
-\# 🌳 The LivingTree
+# 🌳 The LivingTree
 
 **A living, growing family history archive**  
 *Preserving your family's stories for generations to come*
