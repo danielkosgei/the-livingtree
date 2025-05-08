@@ -7,8 +7,23 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'The Living Tree',
-  description: 'Connect with your family tree',
+  title: 'LivingTree',
+  description: 'Build and explore your family tree.',
+  icons: {
+    icon: [
+      {
+        url: '/icons/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+  },
+  manifest: '/manifest.json',
+  themeColor: '#ffffff',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'LivingTree',
+  },
 };
 
 export default function RootLayout({
