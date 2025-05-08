@@ -113,14 +113,17 @@ export function LoginForm({
               </div>
             </div>
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <Image
-              src="/globe.svg"
-              width={500}
-              height={500}
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
+          <div className="relative hidden bg-gradient-to-br from-primary/5 to-muted/5 md:block">
+            <div className="absolute inset-0 grid place-items-center">
+              <Image
+                src="/tree.svg"
+                width={400}
+                height={400}
+                alt="Tree"
+                className="w-96 h-96 opacity-20 stroke-primary/40 dark:stroke-primary/20"
+                priority
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
