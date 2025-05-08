@@ -35,7 +35,7 @@ export function LoginForm({
 
   return (
     <div className={cn("flex h-full flex-col gap-6", className)} {...props}>
-      <Card className="flex-1 overflow-hidden border-0 bg-card/50 p-0 shadow-lg backdrop-blur-[2px] dark:shadow-primary/10">
+      <Card className="flex-1 overflow-hidden border-0 bg-card/50 p-0 shadow-lg backdrop-blur-[2px] dark:bg-card/50 dark:shadow-primary/10">
         <div className="grid h-full md:grid-cols-2">
           <form action={handleSubmit} className="flex h-full flex-col justify-between p-8 md:p-10">
             <div className="flex flex-col gap-8">
@@ -96,10 +96,10 @@ export function LoginForm({
                     'Sign in'
                   )}
                 </Button>
-                <div className="relative my-2 text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-                  <span className="relative z-10 bg-card/50 px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
+                <div className="my-6 flex items-center gap-3 px-2">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-sm text-muted-foreground">Or continue with</span>
+                  <div className="h-px flex-1 bg-border" />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                 <Button variant="outline" className="w-full" disabled>
