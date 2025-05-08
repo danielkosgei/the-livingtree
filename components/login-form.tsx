@@ -35,7 +35,7 @@ export function LoginForm({
 
   return (
     <div className={cn("flex h-full flex-col gap-6", className)} {...props}>
-      <Card className="flex-1 overflow-hidden border-0 bg-card/50 p-0 shadow-lg backdrop-blur-[2px] dark:bg-card/50 dark:shadow-primary/10">
+      <Card className="flex-1 overflow-hidden border-0 bg-card/50 p-0">
         <div className="grid h-full md:grid-cols-2">
           <form action={handleSubmit} className="flex h-full flex-col justify-between p-8 md:p-10">
             <div className="flex flex-col gap-8">
@@ -139,21 +139,18 @@ export function LoginForm({
               </a>
             </div>
           </form>
-          <div className="relative hidden h-full bg-gradient-to-br from-muted/50 via-primary/5 to-background md:block">
-            <div className="absolute inset-0">
-              <div className="flex h-full items-center justify-center">
-                <div className="relative aspect-square w-full max-w-lg">
-                  <Image
-                    src="/tree.svg"
-                    fill
-                    alt="Tree"
-                    className="scale-90 opacity-25 stroke-primary/30 transition-all duration-300 dark:stroke-primary/20"
-                    priority
-                  />
-                </div>
+          <div className="relative hidden h-full overflow-hidden md:block">
+            <div className="absolute inset-0 bg-background/50 dark:bg-background/20" />
+            <div className="absolute inset-0 flex items-center justify-center p-8">
+              <div className="relative aspect-square w-full max-w-lg">
+                <Image
+                  src="/tree.svg"
+                  fill
+                  alt="Tree"
+                  className="scale-90 opacity-50 stroke-primary/40 transition-all duration-300 hover:opacity-60 hover:stroke-primary/50 dark:opacity-40 dark:stroke-primary/30 dark:hover:opacity-50 dark:hover:stroke-primary/40"
+                  priority
+                />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-muted/10" />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/10" />
             </div>
           </div>
         </div>
