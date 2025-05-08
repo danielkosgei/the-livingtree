@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { login, signup } from "@/app/login/actions"
 import Image from 'next/image'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 export function LoginForm({
   className,
@@ -16,18 +16,17 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const searchParams = useSearchParams()
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
     setError(null)
     
     try {
+      formData.append('searchParams', searchParams.toString())
       await login(formData)
-      router.push('/profile') // Redirect to profile page after login
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to login')
-    } finally {
       setIsLoading(false)
     }
   }

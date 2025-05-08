@@ -6,6 +6,8 @@ DROP POLICY IF EXISTS "Users can view their own node" ON nodes;
 DROP POLICY IF EXISTS "Users can create their own node" ON nodes;
 DROP POLICY IF EXISTS "View members in own clusters" ON cluster_members;
 DROP POLICY IF EXISTS "Join cluster if node matches" ON cluster_members;
+DROP POLICY IF EXISTS "View relationships involving self" ON relationships;
+DROP POLICY IF EXISTS "Manage relationships" ON relationships;
 
 -- Simple policy to allow users to view and manage their own node
 CREATE POLICY "Manage own node"
@@ -43,4 +45,22 @@ CREATE POLICY "Manage cluster membership"
     node_id IN (
       SELECT id FROM nodes WHERE user_id = auth.uid()::uuid
     )
+  );
+
+-- Policy to allow users to view relationships they're part of
+CREATE POLICY "View relationships"
+  ON relationships FOR SELECT
+  USING (
+    node_id_1 IN (SELECT id FROM nodes WHERE user_id = auth.uid()::uuid)
+    OR node_id_2 IN (SELECT id FROM nodes WHERE user_id = auth.uid()::uuid)
+  );
+
+-- Policy to allow users to create relationships
+CREATE POLICY "Create relationships"
+  ON relationships FOR INSERT
+  WITH CHECK (
+    -- Either the user owns node 1
+    node_id_1 IN (SELECT id FROM nodes WHERE user_id = auth.uid()::uuid)
+    -- Or they own node 2
+    OR node_id_2 IN (SELECT id FROM nodes WHERE user_id = auth.uid()::uuid)
   ); 

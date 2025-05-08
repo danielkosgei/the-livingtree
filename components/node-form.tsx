@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -22,10 +22,17 @@ type NodeFormProps = {
 
 export function NodeForm({ initialData }: NodeFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPersonalNode, setIsPersonalNode] = useState(!initialData)
   const [success, setSuccess] = useState(false)
+  
+  // Check if this is from an invitation
+  const isInvited = searchParams.get('invited') === 'true'
+  const inviteCode = searchParams.get('code')
+  const relationType = searchParams.get('type')
+  const inviterNodeId = searchParams.get('from')
   
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -45,7 +52,14 @@ export function NodeForm({ initialData }: NodeFormProps) {
       birth_date: formData.get('birth_date') as string || undefined,
       death_date: formData.get('death_date') as string || undefined,
       privacy: formData.get('privacy') as NodeFormData['privacy'],
-      redaction: 'none' // Default value, will be configured elsewhere
+      redaction: 'none', // Default value, will be configured elsewhere
+    }
+    
+    // Add invitation data if available
+    if (isInvited && inviteCode && relationType && inviterNodeId) {
+      data.inviteCode = inviteCode;
+      data.relationType = relationType;
+      data.inviterNodeId = inviterNodeId;
     }
 
     try {
@@ -71,9 +85,11 @@ export function NodeForm({ initialData }: NodeFormProps) {
           <CardTitle className="text-2xl">{initialData ? 'Update Your Profile' : 'Create Your Profile'}</CardTitle>
         </div>
         <CardDescription>
-          {isPersonalNode 
-            ? 'Enter your details to create your personal profile in the family tree.' 
-            : 'Update your profile information.'}
+          {isInvited 
+            ? `You've been invited to join a family tree as a ${relationType}. Enter your details to complete the connection.`
+            : isPersonalNode 
+              ? 'Enter your details to create your personal profile in the family tree.' 
+              : 'Update your profile information.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -131,7 +147,14 @@ export function NodeForm({ initialData }: NodeFormProps) {
             </p>
           </div>
 
-          {isPersonalNode && (
+          {isInvited && relationType && (
+            <div className="bg-primary/5 p-4 rounded-md text-sm border border-primary/10">
+              <p className="font-medium mb-1">Joining as a {relationType}</p>
+              <p>When you create your profile, you'll be connected to the person who invited you.</p>
+            </div>
+          )}
+
+          {isPersonalNode && !isInvited && (
             <div className="bg-muted p-4 rounded-md text-sm text-muted-foreground">
               <p className="font-medium mb-1">This is your personal profile</p>
               <p>After completing your profile, you'll be taken to the family tree where you can add family members and explore your connections.</p>
