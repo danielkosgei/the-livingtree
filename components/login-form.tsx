@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Logo } from "@/components/ui/logo"
 import { login, signup } from "@/app/login/actions"
 import Image from 'next/image'
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { TreeDeciduous } from 'lucide-react'
 
 export function LoginForm({
   className,
@@ -32,51 +34,74 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          <form action={handleSubmit} className="p-6 md:p-8">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
+    <div className={cn("flex h-full flex-col gap-6", className)} {...props}>
+      <Card className="flex-1 overflow-hidden border-0 bg-card/50 p-0 shadow-lg backdrop-blur-[2px] dark:shadow-primary/10">
+        <div className="grid h-full md:grid-cols-2">
+          <form action={handleSubmit} className="flex h-full flex-col justify-between p-8 md:p-10">
+            <div className="flex flex-col gap-8">
+              <div className="flex flex-col items-center gap-1 text-center">
+                <div className="mb-2">
+                  <Logo size="lg" />
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
                 <p className="text-balance text-muted-foreground">
-                  Login to your account
+                  Sign in to continue building your family tree
                 </p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    required
+                    className="bg-background/50"
+                  />
               </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="ml-auto text-sm underline-offset-2 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input id="password" name="password" type="password" required />
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <a
+                      href="#"
+                      className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
+                  <Input 
+                    id="password" 
+                    name="password" 
+                    type="password" 
+                    required 
+                    className="bg-background/50"
+                  />
               </div>
               {error && (
                 <div className="text-sm text-red-500">{error}</div>
               )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Button>
-              <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-                <span className="relative z-10 bg-background px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
+                <Button 
+                  type="submit" 
+                  size="lg"
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <TreeDeciduous className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign in'
+                  )}
+                </Button>
+                <div className="relative my-2 text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+                  <span className="relative z-10 bg-card/50 px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
                 <Button variant="outline" className="w-full" disabled>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -105,31 +130,39 @@ export function LoginForm({
                   <span className="sr-only">Login with Meta</span>
                 </Button>
               </div>
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <a href="#" className="underline underline-offset-4">
-                  Sign up
-                </a>
               </div>
             </div>
+            <div className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <a href="#" className="font-medium text-primary hover:underline">
+                Create one now
+              </a>
+            </div>
           </form>
-          <div className="relative hidden bg-gradient-to-br from-primary/5 to-muted/5 md:block">
-            <div className="absolute inset-0 grid place-items-center">
-              <Image
-                src="/tree.svg"
-                width={400}
-                height={400}
-                alt="Tree"
-                className="w-96 h-96 opacity-20 stroke-primary/40 dark:stroke-primary/20"
-                priority
-              />
+          <div className="relative hidden h-full bg-gradient-to-br from-muted/50 via-primary/5 to-background md:block">
+            <div className="absolute inset-0">
+              <div className="flex h-full items-center justify-center">
+                <div className="relative aspect-square w-full max-w-lg">
+                  <Image
+                    src="/tree.svg"
+                    fill
+                    alt="Tree"
+                    className="scale-90 opacity-25 stroke-primary/30 transition-all duration-300 dark:stroke-primary/20"
+                    priority
+                  />
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-muted/10" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-muted/10" />
             </div>
           </div>
-        </CardContent>
+        </div>
       </Card>
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+      <div className="text-balance text-center text-xs text-muted-foreground">
+        By continuing, you agree to our{" "}
+        <a href="#" className="underline-offset-4 hover:text-primary hover:underline">Terms of Service</a>{" "}
+        and{" "}
+        <a href="#" className="underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
       </div>
     </div>
   )
