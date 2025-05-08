@@ -31,9 +31,15 @@ type RelationshipType =
   | 'uncle' | 'aunt' | 'cousin' | 'grandparent' 
   | 'grandchild' | 'in_law' | 'niece' | 'nephew'
 
-export function AddRelativeModal() {
-  const [open, setOpen] = useState(false)
-  const [relationshipType, setRelationshipType] = useState<RelationshipType | ''>('')
+interface AddRelativeModalProps {
+  onClose: () => void;
+  onSubmit: (data: any) => Promise<void>;
+  relationshipType: string | null;
+}
+
+export function AddRelativeModal({ onClose, onSubmit, relationshipType: initialType }: AddRelativeModalProps) {
+  const [open, setOpen] = useState(true)
+  const [relationshipType, setRelationshipType] = useState<RelationshipType | ''>(initialType as RelationshipType || '')
   const [inviteLink, setInviteLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -67,11 +73,15 @@ export function AddRelativeModal() {
       }
       
       // Get the user's node
-      const { data: userNode } = await supabase
+      const { data: userNode, error: nodeError } = await supabase
         .from('nodes')
         .select('id')
         .eq('user_id', user.id)
         .single()
+
+      if (nodeError) {
+        throw nodeError;
+      }
         
       if (!userNode) {
         toast({
@@ -137,13 +147,11 @@ export function AddRelativeModal() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-xs flex items-center gap-1.5">
-          <UserPlus className="h-4 w-4" />
-          Add Relative
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) onClose();
+    }}>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add a Family Member</DialogTitle>
@@ -251,7 +259,10 @@ export function AddRelativeModal() {
               </Button>
             </div>
           )}
-          <Button variant="ghost" onClick={() => setOpen(false)}>
+          <Button variant="ghost" onClick={() => {
+            setOpen(false);
+            onClose();
+          }}>
             Close
           </Button>
         </DialogFooter>

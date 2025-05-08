@@ -1,28 +1,67 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { TreeDeciduous, Plus, UserPlus, User, AlertCircle, Settings, Download, Share2, ZoomIn, ZoomOut } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
-import { AddRelativeModal } from '@/components/add-relative-modal'
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { TreeDeciduous, Plus, UserPlus, User, AlertCircle, Settings, Download, Share2, ZoomIn, ZoomOut } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { AddRelativeModal } from '@/components/add-relative-modal';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
+import { useUser } from '@/hooks/use-user';
+import { useToast } from '@/hooks/use-toast';
+import { useSupabase } from '@/hooks/use-supabase';
+import { TreeNode, Relationship } from '@/types';
 
-type TreeNode = {
+interface UserNodeCardProps {
+  node: TreeNode;
+  isCurrentUser: boolean;
+  relationshipType?: string;
+  style?: React.CSSProperties;
+}
+
+interface AddRelativeCardProps {
+  onAdd: () => void;
+  relationshipType?: string;
+}
+
+interface TreeLayoutNode {
+  id: string;
+  x: number;
+  y: number;
+}
+
+interface TreeConnection {
+  from: TreeLayoutNode;
+  to: TreeLayoutNode;
+}
+
+interface TreeLayout {
+  nodes: Record<string, TreeLayoutNode>;
+  connections: TreeConnection[];
+}
+
+type NodePosition = {
+  id: string;
+  x: number;
+  y: number;
+  level: number;
+};
+
+interface TreeNode {
   id: string
   user_id: string
   full_name: string
-  birth_date: string | null
-  death_date: string | null
+  birth_date?: string
+  death_date?: string
   privacy: string
   redaction: string
 }
@@ -34,512 +73,411 @@ type Relationship = {
   type: string
 }
 
+function calculateTreeLayout(nodes: TreeNode[], relationships: Relationship[], rootId: string): TreeLayout {
+  const layout: Record<string, TreeLayoutNode> = {};
+  const connections: TreeConnection[] = [];
+  const processed = new Set<string>();
+  const levelNodes: Record<number, string[]> = {};
+  const horizontalSpacing = 300;
+  const verticalSpacing = 180;
+
+  // First pass: organize nodes by level and calculate width
+  function organizeByLevel(nodeId: string, level: number): void {
+    if (processed.has(nodeId)) return;
+    processed.add(nodeId);
+
+    if (!levelNodes[level]) levelNodes[level] = [];
+    levelNodes[level].push(nodeId);
+
+    // Process children
+    const children = relationships
+      .filter(r => r.node_id_1 === nodeId)
+      .map(r => r.node_id_2);
+
+    children.forEach(childId => organizeByLevel(childId, level + 1));
+  }
+
+  // Reset and do first pass
+  processed.clear();
+  organizeByLevel(rootId, 0);
+
+  // Second pass: calculate positions
+  processed.clear();
+  function processLevel(nodeId: string, level: number, position: number): void {
+    if (processed.has(nodeId)) return;
+    processed.add(nodeId);
+
+    // Calculate position
+    const levelWidth = levelNodes[level].length;
+    const x = (position - (levelWidth - 1) / 2) * horizontalSpacing;
+    const y = level * verticalSpacing;
+    layout[nodeId] = { id: nodeId, x, y };
+
+    // Find and process children
+    const children = relationships
+      .filter(r => r.node_id_1 === nodeId)
+      .map(r => r.node_id_2);
+
+    // Process children and create connections
+    children.forEach((childId, index) => {
+      const childLevel = level + 1;
+      const childLevelWidth = levelNodes[childLevel]?.length || 1;
+      const childIndex = levelNodes[childLevel]?.indexOf(childId) || 0;
+      processLevel(childId, childLevel, childIndex);
+      
+      // Add connection
+      if (layout[nodeId] && layout[childId]) {
+        connections.push({
+          from: layout[nodeId],
+          to: layout[childId]
+        });
+      }
+    });
+  }
+
+  // Start from root
+  processLevel(rootId, 0, 0);
+  
+  return {
+    nodes: layout,
+    connections
+  };
+}
+
+const UserNodeCard = React.memo<UserNodeCardProps>(({ node, isCurrentUser, relationshipType, style }) => {
+  return (
+    <Card className={cn(
+      'relative min-w-[200px] transition-all duration-200 shadow-lg hover:shadow-xl',
+      isCurrentUser ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'
+    )} style={style}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <User className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <div className="font-medium">{node.full_name}</div>
+            {node.birth_date && (
+              <div className="text-xs text-muted-foreground">
+                b. {new Date(node.birth_date).getFullYear()}
+                {node.death_date && ` - d. ${new Date(node.death_date).getFullYear()}`}
+              </div>
+            )}
+          </div>
+        </div>
+        {relationshipType && (
+          <div className="mt-3 text-xs font-medium text-primary/80 capitalize border-t pt-2">
+            {relationshipType.replace('_', ' ')}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+});
+
+UserNodeCard.displayName = 'UserNodeCard';
+
+const AddRelativeCard = React.memo<AddRelativeCardProps>(({ onAdd, relationshipType }) => {
+  return (
+    <Button
+      variant="outline"
+      className="h-auto p-4 border-dashed"
+      onClick={onAdd}
+    >
+      <UserPlus className="w-4 h-4 mr-2" />
+      Add {relationshipType ? relationshipType.replace('_', ' ') : 'relative'}
+    </Button>
+  );
+});
+
+AddRelativeCard.displayName = 'AddRelativeCard';
+
 export function FamilyTree() {
-  const [userNode, setUserNode] = useState<TreeNode | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [allNodes, setAllNodes] = useState<TreeNode[]>([])
-  const [relationships, setRelationships] = useState<Relationship[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<string | null>(null)
-  const [zoom, setZoom] = useState(1)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [userNode, setUserNode] = useState<TreeNode | null>(null);
+  const [allNodes, setAllNodes] = useState<TreeNode[]>([]);
+  const [relationships, setRelationships] = useState<Relationship[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [showAddRelativeModal, setShowAddRelativeModal] = useState(false);
+  const [selectedRelationship, setSelectedRelationship] = useState<string | null>(null);
+
+  const user = useUser();
+  const { toast } = useToast();
+  const supabase = useSupabase();
+
+  const treeLayout = useMemo(() => {
+    if (!userNode) return null;
+    return calculateTreeLayout(allNodes, relationships, userNode.id);
+  }, [userNode, allNodes, relationships]);
 
   useEffect(() => {
-    async function loadTreeData() {
-      setLoading(true)
-      const supabase = createClient()
-      
-      // Check if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setLoading(false)
-        return
+    if (!user) return;
+    loadUserNode();
+  }, [user]);
+
+  const loadUserNode = async () => {
+    try {
+      if (!user?.id) {
+        throw new Error('No user ID found');
       }
 
-      // Get the user's node
-      const { data: userNodeData, error: nodeError } = await supabase
+      // First check if user node exists
+      const { data: existingNode, error: fetchError } = await supabase
         .from('nodes')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .single();
 
-      if (nodeError) {
-        console.error('Error loading node:', nodeError)
-        setError('Failed to load your family tree')
-        setLoading(false)
-        return
+      if (fetchError?.code === 'PGRST116') {
+        // Node doesn't exist, create it
+        const { data: newNode, error: createError } = await supabase
+          .from('nodes')
+          .insert([{
+            user_id: user.id,
+            full_name: user.user_metadata?.full_name || 'Anonymous',
+            created_at: new Date().toISOString(),
+          }])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setUserNode(newNode);
+      } else if (fetchError) {
+        throw fetchError;
+      } else {
+        setUserNode(existingNode);
+        await loadRelatedNodes(existingNode.id);
       }
+    } catch (error: any) {
+      console.error('Error loading user node:', error);
+      setError(`Failed to load user data: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if (!userNodeData) {
-        setLoading(false)
-        return
-      }
-      
-      setUserNode(userNodeData)
-
-      // Get ALL nodes
-      const { data: nodeData, error: nodesError } = await supabase
-        .from('nodes')
-        .select('*')
-      
-      if (nodesError) {
-        console.error('Error loading all nodes:', nodesError)
-        setError('Failed to load the family tree')
-        setLoading(false)
-        return
-      }
-
-      if (nodeData) {
-        const otherNodes = nodeData.filter(n => n.id !== userNodeData.id);
-        setAllNodes(otherNodes);
-      }
-
-      // Get all relationships involving the user's node
-      const { data: relationshipData, error: relationshipsError } = await supabase
+  const loadRelatedNodes = async (nodeId: string) => {
+    try {
+      // Load relationships
+      const { data: rels, error: relsError } = await supabase
         .from('relationships')
         .select('*')
-        .or(`node_id_1.eq.${userNodeData.id},node_id_2.eq.${userNodeData.id}`)
-      
-      if (relationshipsError) {
-        console.error('Error loading relationships:', relationshipsError)
-        setDebugInfo('Issue with relationships: ' + JSON.stringify(relationshipsError))
-      } else {
-        if (relationshipData && relationshipData.length > 0) {
-          setRelationships(relationshipData)
-        } else {
-          setDebugInfo('No relationships found. You may need to connect with relatives.')
+        .or(`node_id_1.eq.${nodeId},node_id_2.eq.${nodeId}`);
+
+      if (relsError) throw relsError;
+
+      if (rels && rels.length > 0) {
+        setRelationships(rels);
+
+        // Load related nodes
+        const relatedNodeIds = rels
+          .map(r => [r.node_id_1, r.node_id_2])
+          .flat()
+          .filter(id => id !== nodeId);
+
+        if (relatedNodeIds.length > 0) {
+          const { data: nodes, error: nodesError } = await supabase
+            .from('nodes')
+            .select('*')
+            .in('id', relatedNodeIds);
+
+          if (nodesError) throw nodesError;
+          if (nodes) setAllNodes(nodes);
         }
       }
-
-      setLoading(false)
+    } catch (error: any) {
+      console.error('Error loading related nodes:', error);
+      setError(`Failed to load family tree data: ${error.message || 'Unknown error'}`);
     }
+  };
 
-    loadTreeData()
-  }, [])
+  const handleAddRelative = async (data: any) => {
+    try {
+      // Create new node
+      const { data: newNode, error: nodeError } = await supabase
+        .from('tree_nodes')
+        .insert([data])
+        .single();
 
-  // Helper function to find relationship type between current user and another node
-  const getRelationshipType = (nodeId: string): string | null => {
-    // Check relationships where user is node_id_1
-    const relationship1 = relationships.find(r => r.node_id_1 === userNode?.id && r.node_id_2 === nodeId);
-    if (relationship1) return relationship1.type;
-    
-    // Check relationships where user is node_id_2
-    const relationship2 = relationships.find(r => r.node_id_2 === userNode?.id && r.node_id_1 === nodeId);
-    if (relationship2) {
-      // Invert the relationship type if needed
-      if (relationship2.type === 'parent') return 'child';
-      if (relationship2.type === 'child') return 'parent';
-      if (relationship2.type === 'grandparent') return 'grandchild';
-      if (relationship2.type === 'grandchild') return 'grandparent';
-      if (relationship2.type === 'aunt' || relationship2.type === 'uncle') return 'niece/nephew';
-      if (relationship2.type === 'niece' || relationship2.type === 'nephew') return 'aunt/uncle';
-      // Other relationships stay the same (sibling, spouse, cousin, in_law)
-      return relationship2.type;
+      if (nodeError) throw nodeError;
+
+      // Create relationship
+      const relationship = {
+        node_id_1: userNode?.id,
+        node_id_2: newNode.id,
+        type: selectedRelationship,
+      };
+
+      const { error: relError } = await supabase
+        .from('relationships')
+        .insert([relationship]);
+
+      if (relError) throw relError;
+
+      // Refresh data
+      await loadRelatedNodes(userNode?.id!);
+      setShowAddRelativeModal(false);
+      toast('Relative added successfully');
+    } catch (error) {
+      console.error('Error adding relative:', error);
+      toast('Failed to add relative');
     }
-    
-    return null;
-  }
+  };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <TreeDeciduous className="h-12 w-12 text-primary/30 animate-pulse mb-4" />
-        <p className="text-muted-foreground">Loading your family tree...</p>
+      <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <TreeDeciduous className="h-4 w-4 animate-spin" />
+          Loading family tree...
+        </div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md max-w-md text-center">
-          <p className="font-semibold mb-2">Something went wrong</p>
-          <p>{error}</p>
-          <Button variant="outline" asChild className="mt-4">
-            <Link href="/profile">Create Your Profile</Link>
+      <div className="flex items-center justify-center h-screen w-screen bg-background">
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!treeLayout) return null;
+
+  return (
+    <div className="fixed inset-0 bg-background overflow-hidden">
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-sm border-b px-4 flex items-center justify-between z-10">
+        <h1 className="text-lg font-semibold">Family Tree</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm">
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
           </Button>
         </div>
       </div>
-    )
-  }
+      {/* Tree container */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 mt-16 flex items-center justify-center">
+        <div
+          className="relative"
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: '50% 50%'
+          }}
+      >
+        {/* Render nodes */}
+        {treeLayout && Object.entries(treeLayout.nodes).map(([id, pos]) => {
+          const node = allNodes.find(n => n.id === id) || userNode;
+          if (!node) return null;
 
-  if (!userNode) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen max-w-md mx-auto text-center">
-        <TreeDeciduous className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Start Your Family Tree</h2>
-        <p className="text-muted-foreground mb-6">
-          You haven't created your profile yet. Create your profile to start building your family tree.
-        </p>
-        <Button asChild>
-          <Link href="/profile">Create Your Profile</Link>
-        </Button>
-      </div>
-    )
-  }
-
-  // Create related nodes array with relationships
-  const relatedNodes = allNodes.map(node => {
-    const relationshipType = getRelationshipType(node.id);
-    return {
-      ...node,
-      relationship: relationshipType
-    };
-  }).filter(node => node.relationship !== null);
-
-  // Group nodes by relationship type
-  const groupedNodes = relatedNodes.reduce((groups, node) => {
-    const relationship = node.relationship || 'other';
-    if (!groups[relationship]) {
-      groups[relationship] = [];
-    }
-    groups[relationship].push(node);
-    return groups;
-  }, {} as Record<string, any[]>);
-
-  // Debug: count relationships for debugging
-  const relatedCount = relatedNodes.length;
-  const totalNodes = allNodes.length;
-
-  return (
-    <div className="family-tree-container min-h-screen relative">
-      {/* Top Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-2">
-            <TreeDeciduous className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Your Family Tree</h2>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
-                className="h-8 w-8"
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground w-12 text-center">
-                {Math.round(zoom * 100)}%
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setZoom(z => Math.min(2, z + 0.1))}
-                className="h-8 w-8"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
+          return (
+            <div
+              key={id}
+              className="absolute"
+              style={{
+                transform: `translate(${pos.x}px, ${pos.y}px)`,
+              }}
+            >
+              <UserNodeCard
+                node={node}
+                isCurrentUser={node.id === userNode?.id}
+                style={{
+                  transform: `translate(-50%, -50%)`,
+                }}
+              />
             </div>
+          );
+        })}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Tree Options</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Tree
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share Tree
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Button variant="ghost" size="sm" asChild className="w-full justify-start">
-                    <Link href="/profile">Edit Your Profile</Link>
-                  </Button>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        {/* Render connections */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ transform: `scale(${zoom})` }}
+        >
+          {treeLayout.connections.map((conn, i) => {
+            const startX = conn.from.x;
+            const startY = conn.from.y;
+            const endX = conn.to.x;
+            const endY = conn.to.y;
+
+            // Calculate control points for the curve
+            const midY = (startY + endY) / 2;
+
+            return (
+              <path
+                key={i}
+                d={`M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`}
+                stroke="currentColor"
+                strokeOpacity={0.3}
+                strokeWidth={1.5}
+                fill="none"
+                className="transition-all duration-200"
+              />
+            );
+          })}
+        </svg>
         </div>
       </div>
 
-      {/* Main Tree Content */}
-      <div className="pt-14 min-h-screen bg-gradient-to-b from-primary/5 to-background">
-        <div className="relative p-8" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
-          {debugInfo && (
-            <div className="fixed top-20 left-4 right-4 md:left-auto md:right-4 md:w-80 p-4 bg-amber-50 border border-amber-200 rounded-md shadow-lg z-40">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-                <div>
-                  <p className="text-sm text-amber-800">{debugInfo}</p>
-                  <p className="text-xs text-amber-600 mt-1">Nodes count: {totalNodes}, Related: {relatedCount}</p>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* Add relative modal */}
+      {showAddRelativeModal && (
+        <AddRelativeModal
+          onClose={() => setShowAddRelativeModal(false)}
+          onSubmit={handleAddRelative}
+          relationshipType={selectedRelationship}
+        />
+      )}
 
-          {/* User's node at the center */}
-          <div className="flex justify-center mb-16">
-            <UserNodeCard node={userNode} isCurrentUser={true} />
-          </div>
+      {/* Controls */}
+      <div className="fixed top-20 right-4 flex flex-col gap-4 z-20">
+        {/* Zoom controls */}
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setZoom(prev => Math.min(prev + 0.1, 2))}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+        </div>
 
-          {/* Family tree connections */}
-          {relatedNodes.length > 0 ? (
-            <div className="tree-connections">
-              {/* Parents section */}
-              {groupedNodes['parent'] && groupedNodes['parent'].length > 0 && (
-                <div className="relative mb-20">
-                  <div className="relationship-label">Parents</div>
-                  <div className="w-[1px] h-16 bg-primary/30 absolute top-[-4rem] left-1/2 transform -translate-x-1/2"></div>
-                  <div className="tree-branch">
-                    <div className="horizontal-line"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-                      {groupedNodes['parent'].map((relative) => (
-                        <div key={relative.id} className="relative">
-                          <div className="vertical-line"></div>
-                          <UserNodeCard node={relative} isCurrentUser={false} relationshipType="parent" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Siblings and Spouse sections side by side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-                {/* Siblings section */}
-                {groupedNodes['sibling'] && groupedNodes['sibling'].length > 0 && (
-                  <div className="relative">
-                    <div className="relationship-label">Siblings</div>
-                    <div className="tree-branch">
-                      <div className="horizontal-line"></div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {groupedNodes['sibling'].map((relative) => (
-                          <div key={relative.id} className="relative">
-                            <div className="vertical-line"></div>
-                            <UserNodeCard node={relative} isCurrentUser={false} relationshipType="sibling" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Spouse section */}
-                {groupedNodes['spouse'] && groupedNodes['spouse'].length > 0 && (
-                  <div className="relative">
-                    <div className="relationship-label">Spouse/Partner</div>
-                    <div className="tree-branch spouse-branch">
-                      <div className="horizontal-line"></div>
-                      <div className="flex flex-wrap justify-center gap-6">
-                        {groupedNodes['spouse'].map((relative) => (
-                          <div key={relative.id} className="relative">
-                            <div className="vertical-line"></div>
-                            <UserNodeCard node={relative} isCurrentUser={false} relationshipType="spouse" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Children section */}
-              {groupedNodes['child'] && groupedNodes['child'].length > 0 && (
-                <div className="relative mb-20">
-                  <div className="relationship-label">Children</div>
-                  <div className="tree-branch">
-                    <div className="horizontal-line"></div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 justify-items-center">
-                      {groupedNodes['child'].map((relative) => (
-                        <div key={relative.id} className="relative">
-                          <div className="vertical-line"></div>
-                          <UserNodeCard node={relative} isCurrentUser={false} relationshipType="child" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Extended family grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {Object.entries(groupedNodes)
-                  .filter(([type]) => !['parent', 'child', 'sibling', 'spouse'].includes(type))
-                  .map(([type, relatives]) => (
-                    <div key={type} className="relative">
-                      <div className="relationship-label capitalize">{type.replace('_', ' ')}s</div>
-                      <div className="tree-branch">
-                        <div className="horizontal-line"></div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          {relatives.map((relative) => (
-                            <div key={relative.id} className="relative">
-                              <div className="vertical-line"></div>
-                              <UserNodeCard 
-                                node={relative} 
-                                isCurrentUser={false} 
-                                relationshipType={type} 
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                }
-              </div>
-              
-              {/* Add relative option */}
-              <div className="flex justify-center mt-12">
-                <AddRelativeCard />
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <div className="w-[1px] h-8 bg-border mb-4"></div>
-              <div className="text-center text-muted-foreground mb-4">
-                <p>No connected family members found.</p>
-                <p className="text-sm">Invite relatives to grow your tree!</p>
-                {allNodes.length > 0 && (
-                  <p className="text-xs mt-2 text-amber-600">
-                    There are {allNodes.length} nodes in the database but no established relationships.
-                  </p>
-                )}
-              </div>
-              <AddRelativeCard />
-            </div>
-          )}
+        {/* Add relative buttons */}
+        <div className="flex flex-col gap-2">
+          <AddRelativeCard 
+            onAdd={() => {
+              setSelectedRelationship('parent');
+              setShowAddRelativeModal(true);
+            }}
+            relationshipType="parent"
+          />
+          <AddRelativeCard 
+            onAdd={() => {
+              setSelectedRelationship('child');
+              setShowAddRelativeModal(true);
+            }}
+            relationshipType="child"
+          />
         </div>
       </div>
-
-      <style jsx>{`
-        .tree-connections {
-          position: relative;
-        }
-        
-        .relationship-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--muted-foreground);
-          text-align: center;
-          margin-bottom: 1rem;
-          letter-spacing: 0.025em;
-        }
-        
-        .tree-branch {
-          position: relative;
-          padding-top: 24px;
-          padding-bottom: 12px;
-        }
-        
-        .horizontal-line {
-          position: absolute;
-          top: 0;
-          left: 10%;
-          right: 10%;
-          height: 2px;
-          background: linear-gradient(
-            90deg,
-            transparent 0%,
-            var(--primary) 20%,
-            var(--primary) 80%,
-            transparent 100%
-          );
-          opacity: 0.2;
-        }
-        
-        .spouse-branch .horizontal-line {
-          left: 20%;
-          right: 20%;
-        }
-        
-        .vertical-line {
-          position: absolute;
-          top: -24px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 2px;
-          height: 24px;
-          background: linear-gradient(
-            180deg,
-            var(--primary) 0%,
-            var(--primary) 90%,
-            transparent 100%
-          );
-          opacity: 0.2;
-        }
-
-        @media (max-width: 768px) {
-          .horizontal-line {
-            left: 5%;
-            right: 5%;
-          }
-          
-          .spouse-branch .horizontal-line {
-            left: 10%;
-            right: 10%;
-          }
-        }
-      `}</style>
     </div>
-  )
+  );
 }
-
-function UserNodeCard({ 
-  node, 
-  isCurrentUser,
-  relationshipType
-}: { 
-  node: TreeNode, 
-  isCurrentUser: boolean,
-  relationshipType?: string 
-}) {
-  return (
-    <Card className={`w-48 transition-all duration-200 hover:shadow-lg ${
-      isCurrentUser 
-        ? 'border-primary shadow-md bg-primary/5' 
-        : 'hover:border-primary/50'
-    }`}>
-      <CardContent className="p-4">
-        <div className="flex flex-col items-center text-center">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 transition-colors ${
-            isCurrentUser ? 'bg-primary/20' : 'bg-muted hover:bg-primary/10'
-          }`}>
-            <User className={`h-8 w-8 ${
-              isCurrentUser ? 'text-primary' : 'text-muted-foreground'
-            }`} />
-          </div>
-          <h3 className="font-medium text-sm truncate w-full mb-1">{node.full_name}</h3>
-          {node.birth_date && (
-            <p className="text-xs text-muted-foreground mb-1">
-              b. {new Date(node.birth_date).getFullYear()}
-              {node.death_date && ` - d. ${new Date(node.death_date).getFullYear()}`}
-            </p>
-          )}
-          {relationshipType && !isCurrentUser && (
-            <span className="text-xs font-medium text-primary/70 capitalize">
-              {relationshipType.replace('_', ' ')}
-            </span>
-          )}
-          {isCurrentUser && (
-            <Button variant="link" size="sm" className="mt-2 h-auto p-0" asChild>
-              <Link href="/profile">Edit Profile</Link>
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function AddRelativeCard() {
-  return (
-    <Card className="w-48 h-[138px] border-dashed shadow-none bg-transparent hover:bg-primary/5 hover:border-primary/50 transition-all duration-200">
-      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3 group-hover:bg-primary/10">
-          <UserPlus className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-        </div>
-        <AddRelativeModal />
-      </CardContent>
-    </Card>
-  )
-} 
