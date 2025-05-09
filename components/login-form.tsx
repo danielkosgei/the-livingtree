@@ -132,7 +132,7 @@ export function LoginForm({
               </div>
               </div>
             </div>
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="mt-8 text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <a href="#" className="font-medium text-primary hover:underline">
                 Create one now
@@ -147,7 +147,7 @@ export function LoginForm({
                   src="/tree.svg"
                   fill
                   alt="Tree"
-                  className="scale-90 opacity-50 stroke-primary/40 transition-all duration-300 hover:opacity-60 hover:stroke-primary/50 dark:opacity-40 dark:stroke-primary/30 dark:hover:opacity-50 dark:hover:stroke-primary/40"
+                  className="scale-90 opacity-50 stroke-primary/40 transition-all duration-300 hover:opacity-60 hover:stroke-primary/50 dark:opacity-40 dark:hover:opacity-50 dark:hover:stroke-primary/40"
                   priority
                 />
               </div>
