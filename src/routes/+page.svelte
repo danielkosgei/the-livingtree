@@ -1,8 +1,4 @@
-<script lang="ts">
-    let { data } = $props();
 
-    $inspect(data.profiles);
-</script>
+<h1>The LivingTree</h1>
 
-<h1>Hello</h1>
-
+<p>The LivingTree is a platform for creating and sharing living trees.</p>
