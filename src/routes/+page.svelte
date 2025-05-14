@@ -125,7 +125,7 @@
         <div class="container mx-auto px-4 z-10">
             <div class="text-center" in:fly="{{ y: 50, duration: 1000 }}">
                 <h1 class="h1 mb-4">The LivingTree</h1>
-                <p class="h3 text-surface-600-300-token italic mb-6">"The fallen leaves tell a story."</p>
+                <p class="h3 text-surface-600-300-token italic mb-6">"Every branch tells a family's story."</p>
                 <p class="text-xl md:text-2xl text-surface-600-300-token mb-12 max-w-2xl mx-auto">
                     Connect your family. Preserve your memories. Grow your lineage together.
                 </p>
