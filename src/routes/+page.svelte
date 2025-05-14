@@ -115,7 +115,7 @@
             {#if mounted}
                 <div class="absolute inset-0 opacity-20" in:fade>
                     <!-- Tree branches animation with glow effect -->
-                    <div class="absolute inset-0 bg-[url('/images/tree-pattern.svg')] bg-center bg-no-repeat bg-[length:min(100vw,1200px)] animate-pulse glow-effect"></div>
+                    <div class="absolute inset-0 bg-[url('/images/tree-pattern.svg')] bg-center bg-no-repeat bg-[length:min(150vw,1600px)] sm:bg-[length:min(100vw,1200px)] animate-pulse glow-effect"></div>
                     
                     <!-- Particle effect overlay -->
                     <div class="absolute inset-0 particles-overlay"></div>
@@ -379,6 +379,13 @@
     /* Glow effect for the tree */
     .glow-effect {
         filter: drop-shadow(0 0 16px rgba(var(--color-primary-400), 0.6));
+    }
+
+    /* Mobile-specific tree pattern adjustments */
+    @media (max-width: 640px) {
+        .glow-effect {
+            filter: drop-shadow(0 0 20px rgba(var(--color-primary-400), 0.7));
+        }
     }
 
     /* Particle overlay effect */
