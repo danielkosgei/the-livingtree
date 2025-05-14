@@ -130,17 +130,25 @@
                     Connect your family. Preserve your memories. Grow your lineage together.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button class="btn variant-filled-primary btn-xl">
-                        <Trees class="w-5 h-5 mr-2" />
-                        <span>Start Your Tree</span>
+                    <button class="btn variant-filled-primary btn-xl group relative overflow-hidden transition-all hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative flex items-center">
+                            <Trees class="w-5 h-5 mr-2" />
+                            <span>Start Your Tree</span>
+                        </div>
                     </button>
-                    <button class="btn variant-soft btn-xl">
-                        <Network class="w-5 h-5 mr-2" />
-                        <span>Explore a Demo Tree</span>
+                    <button class="btn variant-soft-secondary btn-xl group relative overflow-hidden transition-all hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-secondary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative flex items-center">
+                            <Network class="w-5 h-5 mr-2" />
+                            <span>Explore a Demo Tree</span>
+                        </div>
                     </button>
-                    <button class="btn variant-ghost btn-xl">
-                        <ChevronRight class="w-5 h-5 mr-2" />
-                        <span>Learn More</span>
+                    <button class="btn variant-ringed-surface btn-xl group transition-all hover:variant-filled-surface">
+                        <div class="flex items-center">
+                            <ChevronRight class="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform" />
+                            <span>Learn More</span>
+                        </div>
                     </button>
                 </div>
             </div>
