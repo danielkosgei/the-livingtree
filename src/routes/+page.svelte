@@ -129,42 +129,42 @@
                 <p class="text-xl md:text-2xl text-surface-600-300-token mb-12 max-w-2xl mx-auto">
                     Connect your family. Preserve your memories. Grow your lineage together.
                 </p>
-                <div class="flex flex-col space-y-6 items-center">
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <button class="btn variant-filled-primary btn-xl group relative overflow-hidden transition-all hover:scale-105">
+                <div class="flex flex-col space-y-8 sm:space-y-6 items-center px-4 sm:px-0">
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center">
+                        <button class="btn variant-filled-primary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105">
                             <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="relative flex items-center">
+                            <div class="relative flex items-center justify-center">
                                 <Trees class="w-5 h-5 mr-2" />
                                 <span>Visualize a Tree</span>
                             </div>
                         </button>
-                        <button class="btn variant-soft-secondary btn-xl group relative overflow-hidden transition-all hover:scale-105">
+                        <button class="btn variant-soft-secondary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105">
                             <div class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-secondary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="relative flex items-center">
+                            <div class="relative flex items-center justify-center">
                                 <Network class="w-5 h-5 mr-2" />
                                 <span>Interactive Demo</span>
                             </div>
                         </button>
-                        <button class="btn variant-ringed-surface btn-xl group transition-all hover:variant-filled-surface">
-                            <div class="flex items-center">
+                        <button class="btn variant-ringed-surface btn-xl group w-full sm:w-auto hover:variant-filled-surface">
+                            <div class="flex items-center justify-center">
                                 <ChevronRight class="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform" />
                                 <span>Learn More</span>
                             </div>
                         </button>
                     </div>
-                    <div class="flex flex-col items-center space-y-2">
+                    <div class="flex flex-col items-center space-y-3 sm:space-y-2 w-full sm:w-auto">
                         <div class="flex flex-col items-center">
-                            <p class="text-sm text-surface-600-300-token">Try our visualization tools - no account needed</p>
-                            <p class="text-sm text-secondary-600-300-token">Or explore our interactive demo tree</p>
+                            <p class="text-sm text-surface-600-300-token text-center">Try our visualization tools - no account needed</p>
+                            <p class="text-sm text-secondary-600-300-token text-center">Or explore our interactive demo tree</p>
                         </div>
-                        <div class="flex items-center gap-2 pt-2">
-                            <div class="h-px w-16 bg-primary-500"></div>
-                            <p class="text-base font-semibold text-primary-500">Have an invite code?</p>
-                            <div class="h-px w-16 bg-primary-500"></div>
+                        <div class="flex items-center gap-2 pt-2 w-full justify-center">
+                            <div class="hidden sm:block h-px w-16 bg-primary-500"></div>
+                            <p class="text-base font-semibold text-primary-500 px-2">Have an invite code?</p>
+                            <div class="hidden sm:block h-px w-16 bg-primary-500"></div>
                         </div>
-                        <a href="/auth?join=true" class="btn variant-filled-primary btn-xl relative group overflow-hidden hover:scale-105">
+                        <a href="/auth?join=true" class="btn variant-filled-primary btn-xl relative w-full sm:w-auto group overflow-hidden hover:scale-105">
                             <div class="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div class="relative flex items-center">
+                            <div class="relative flex items-center justify-center">
                                 <Users class="w-5 h-5 mr-2" />
                                 <span class="font-semibold tracking-wide">Join Your Family's Tree</span>
                             </div>
@@ -333,5 +333,19 @@
     /* Header shadow on scroll */
     header {
         backdrop-filter: blur(8px);
+    }
+
+    /* Mobile tap state styles */
+    @media (max-width: 640px) {
+        .btn {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        }
+    }
+
+    /* Only apply hover effects on devices that support hover */
+    @media (hover: hover) {
+        .btn {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
     }
 </style>
