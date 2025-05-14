@@ -151,39 +151,11 @@
     <section class="py-20">
         <div class="container mx-auto px-4">
             <h2 class="h2 text-center mb-16">What is The LivingTree?</h2>
-            <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="max-w-3xl mx-auto">
                 <div class="prose prose-lg max-w-none">
                     <p class="text-xl">
-                        The LivingTree is a collaborative family history platform. Each user is a node. Together, you form clusters—small groups like siblings, cousins, or parents. These clusters verify new additions and preserve memories across generations.
+                        The LivingTree is a growing archive of your family's journey, shaped by the people who live it. Each memory shared, each story told, and each connection made adds to your family's living history. Together, we preserve the past while writing the future.
                     </p>
-                </div>
-                <div class="grid grid-cols-2 gap-8">
-                    {#each [
-                        { icon: Network, label: 'Nodes' },
-                        { icon: Users, label: 'Clusters' },
-                        { icon: FileCheck, label: 'Memories' },
-                        { icon: Key, label: 'Consensus' },
-                        { icon: Lock, label: 'Privacy' }
-                    ] as { icon, label }}
-                        <div class="card p-4 text-center variant-soft" in:fade="{{ delay: 200 }}">
-                            <svelte:component this={icon} class="w-8 h-8 mx-auto mb-2" />
-                            <p class="font-semibold">{label}</p>
-                        </div>
-                    {/each}
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Privacy & Redaction -->
-    <section class="py-20">
-        <div class="container mx-auto px-4">
-            <div class="card variant-ghost p-8 max-w-3xl mx-auto">
-                <h2 class="text-4xl font-bold mb-8 text-center">Privacy & Redaction</h2>
-                <div class="space-y-6">
-                    <p class="text-lg">✓ Private by default. Shared only with your clusters.</p>
-                    <p class="text-lg">✓ Redaction levels ensure sensitive data is hidden—even from close family if needed.</p>
-                    <p class="text-lg">✓ Every memory, photo, or story respects your control.</p>
                 </div>
             </div>
         </div>
