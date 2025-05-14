@@ -48,9 +48,8 @@
         <nav class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <!-- Logo -->
-                <a href="/" class="flex items-center space-x-2">
-                    <Trees class="w-6 h-6" />
-                    <span class="text-xl font-semibold">LivingTree</span>
+                <a href="/" class="flex items-center space-x-3">
+                    <span class="text-xl font-bold tracking-tight">LivingTree</span>
                 </a>
 
                 <!-- Desktop Navigation -->
@@ -114,9 +113,12 @@
         <!-- Background Animation -->
         <div class="absolute inset-0 z-0">
             {#if mounted}
-                <div class="absolute inset-0 opacity-10" in:fade>
-                    <!-- Tree branches animation placeholder -->
-                    <div class="absolute inset-0 bg-[url('/images/tree-pattern.svg')] bg-center bg-no-repeat bg-cover animate-pulse"></div>
+                <div class="absolute inset-0 opacity-20" in:fade>
+                    <!-- Tree branches animation with glow effect -->
+                    <div class="absolute inset-0 bg-[url('/images/tree-pattern.svg')] bg-center bg-no-repeat bg-[length:min(100vw,1200px)] animate-pulse glow-effect"></div>
+                    
+                    <!-- Particle effect overlay -->
+                    <div class="absolute inset-0 particles-overlay"></div>
                 </div>
             {/if}
         </div>
@@ -131,23 +133,23 @@
                 </p>
                 <div class="flex flex-col space-y-8 sm:space-y-6 items-center px-4 sm:px-0">
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto justify-center">
-                        <button class="btn variant-filled-primary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105">
-                            <div class="absolute inset-0 bg-gradient-to-r from-primary-400 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <button class="btn variant-filled-primary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105 transition-transform">
+                            <div class="absolute inset-0 bg-gradient-to-r from-primary-400/50 to-primary-600/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative flex items-center justify-center">
-                                <Trees class="w-5 h-5 mr-2" />
+                                <Trees class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                                 <span>Visualize a Tree</span>
                             </div>
                         </button>
-                        <button class="btn variant-soft-secondary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105">
-                            <div class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-secondary-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <button class="btn variant-soft-secondary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105 transition-transform">
+                            <div class="absolute inset-0 bg-gradient-to-r from-secondary-400/50 to-secondary-600/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative flex items-center justify-center">
-                                <Network class="w-5 h-5 mr-2" />
+                                <Network class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                                 <span>Interactive Demo</span>
                             </div>
                         </button>
-                        <button class="btn variant-ringed-surface btn-xl group w-full sm:w-auto hover:variant-filled-surface">
+                        <button class="btn variant-ringed-surface btn-xl group w-full sm:w-auto hover:variant-filled-surface transition-colors">
                             <div class="flex items-center justify-center">
-                                <ChevronRight class="w-5 h-5 mr-2 group-hover:translate-x-1 transition-transform" />
+                                <ChevronRight class="w-5 h-5 mr-2 group-hover:translate-x-2 transition-transform duration-300" />
                                 <span>Learn More</span>
                             </div>
                         </button>
@@ -158,14 +160,14 @@
                             <p class="text-sm text-secondary-600-300-token text-center">Or explore our interactive demo tree</p>
                         </div>
                         <div class="flex items-center gap-2 pt-2 w-full justify-center">
-                            <div class="hidden sm:block h-px w-16 bg-primary-500"></div>
+                            <div class="hidden sm:block h-px w-16 bg-primary-500/50"></div>
                             <p class="text-base font-semibold text-primary-500 px-2">Have an invite code?</p>
-                            <div class="hidden sm:block h-px w-16 bg-primary-500"></div>
+                            <div class="hidden sm:block h-px w-16 bg-primary-500/50"></div>
                         </div>
-                        <a href="/auth?join=true" class="btn variant-filled-primary btn-xl relative w-full sm:w-auto group overflow-hidden hover:scale-105">
-                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500 to-primary-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <a href="/auth?join=true" class="btn variant-filled-primary btn-xl relative w-full sm:w-auto group overflow-hidden hover:scale-105 transition-transform">
+                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/50 to-primary-700/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                             <div class="relative flex items-center justify-center">
-                                <Users class="w-5 h-5 mr-2" />
+                                <Users class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                                 <span class="font-semibold tracking-wide">Join Your Family's Tree</span>
                             </div>
                         </a>
@@ -274,9 +276,26 @@
         <div class="container mx-auto px-4 text-center">
             <h2 class="text-4xl font-bold mb-8">Ready to Start Your Family Tree?</h2>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <button class="btn variant-filled-primary btn-xl">Start Your Tree</button>
-                <button class="btn variant-soft-surface btn-xl">Join With Invite Code</button>
-                <button class="btn variant-ghost-surface btn-xl">Explore Demo</button>
+                <button class="btn variant-filled-primary btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105 transition-transform">
+                    <div class="absolute inset-0 bg-gradient-to-r from-primary-400/50 to-primary-600/50 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                    <div class="relative flex items-center justify-center">
+                        <Trees class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                        <span>Visualize a Tree</span>
+                    </div>
+                </button>
+                <button class="btn variant-soft-surface btn-xl group relative overflow-hidden w-full sm:w-auto hover:scale-105 transition-transform">
+                    <div class="absolute inset-0 bg-gradient-to-r from-surface-400/30 to-surface-600/30 opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                    <div class="relative flex items-center justify-center">
+                        <Key class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                        <span>Join With Invite Code</span>
+                    </div>
+                </button>
+                <button class="btn variant-ghost-surface btn-xl group w-full sm:w-auto hover:variant-filled-surface transition-colors">
+                    <div class="flex items-center justify-center">
+                        <Network class="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                        <span>Explore Demo</span>
+                    </div>
+                </button>
             </div>
         </div>
     </section>
@@ -325,7 +344,7 @@
     </footer>
 </div>
 
-<style lang="postcss">
+<style>
     :global(html) {
         scroll-behavior: smooth;
     }
@@ -338,14 +357,59 @@
     /* Mobile tap state styles */
     @media (max-width: 640px) {
         .btn {
-            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            transition: transform 0.2s ease;
+        }
+        .btn:active {
+            transform: scale(0.98);
         }
     }
 
     /* Only apply hover effects on devices that support hover */
     @media (hover: hover) {
         .btn {
-            transition: transform 0.2s ease, background-color 0.2s ease;
+            transition: all 0.3s ease;
         }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+    }
+
+    /* Glow effect for the tree */
+    .glow-effect {
+        filter: drop-shadow(0 0 16px rgba(var(--color-primary-400), 0.6));
+    }
+
+    /* Particle overlay effect */
+    .particles-overlay {
+        background-image: radial-gradient(circle at center, rgba(var(--color-primary-500), 0.15) 1px, transparent 1px);
+        background-size: 24px 24px;
+        animation: particles 30s linear infinite;
+        opacity: 0.8;
+    }
+
+    @keyframes particles {
+        0% { transform: translateY(0) translateX(0); }
+        50% { transform: translateY(-12px) translateX(6px); }
+        100% { transform: translateY(0) translateX(0); }
+    }
+
+    /* Enhance the pulse animation */
+    @keyframes enhanced-pulse {
+        0%, 100% { 
+            opacity: 0.2;
+            transform: scale(1);
+            filter: brightness(1);
+        }
+        50% { 
+            opacity: 0.3;
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+    }
+
+    .animate-pulse {
+        animation: enhanced-pulse 6s ease-in-out infinite;
     }
 </style>
