@@ -8,6 +8,7 @@
         "@supabase/supabase-js": "^2.49.4",
         "bits-ui": "^1.4.8",
         "drizzle-orm": "^0.43.1",
+        "lucide-svelte": "^0.510.0",
         "postgres": "^3.4.5",
       },
       "devDependencies": {
@@ -674,6 +675,8 @@
     "lodash.merge": ["lodash.merge@4.6.2", "", {}, "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ=="],
 
     "lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
+
+    "lucide-svelte": ["lucide-svelte@0.510.0", "", { "peerDependencies": { "svelte": "^3 || ^4 || ^5.0.0-next.42" } }, "sha512-xlXtd1SIiKjUNlmP9j8jtNRpvl+BrEX8zYRry/sEjdUU2eSthbmdKhlyGZmP+HEMbxYz1Si+Aq30jqafLdErNQ=="],
 
     "magic-string": ["magic-string@0.30.17", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0" } }, "sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA=="],
 

@@ -1,11 +1,11 @@
-<script>
-    let { children } = $props()
-  </script>
-  
-  <header>
-    <nav>
-      <a href="/">Home</a>
-    </nav>
-  </header>
-  
+<script lang="ts">
+  let { children } = $props();
+</script>
+
+<div class="auth-layout">
   {@render children()}
+</div>
+
+<style>
+  
+</style>
