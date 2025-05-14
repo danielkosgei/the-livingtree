@@ -181,7 +181,7 @@
     </section>
 
     <!-- Memory Chains -->
-    <section class="py-20 bg-surface-50">
+    <section class="py-20 bg-surface-100-800-token">
         <div class="container mx-auto px-4">
             <h2 class="text-4xl font-bold text-center mb-12">Memory Chains</h2>
             <div class="grid md:grid-cols-3 gap-8">
@@ -190,7 +190,7 @@
                     { title: 'Link', desc: 'Memories across generations' },
                     { title: 'Preserve', desc: 'Digital heritage through clusters' }
                 ] as { title, desc }}
-                    <div class="card p-6 text-center variant-filled-surface" in:fade="{{ delay: 400 }}">
+                    <div class="card p-6 text-center variant-soft" in:fade="{{ delay: 400 }}">
                         <h3 class="text-2xl font-bold mb-4">{title}</h3>
                         <p class="text-lg">{desc}</p>
                     </div>
@@ -224,7 +224,7 @@
     </section>
 
     <!-- Testimonials -->
-    <section class="py-20 bg-surface-50">
+    <section class="py-20 bg-surface-100-800-token">
         <div class="container mx-auto px-4">
             <h2 class="text-4xl font-bold text-center mb-12">What People Say</h2>
             <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -232,7 +232,7 @@
                     { quote: 'It feels like a living monument to our family.', author: 'Beta User' },
                     { quote: "I finally have a place to store my grandfather's stories.", author: 'Early Contributor' }
                 ] as { quote, author }}
-                    <div class="card p-8 variant-ghost" in:fade="{{ delay: 600 }}">
+                    <div class="card p-8 variant-soft" in:fade="{{ delay: 600 }}">
                         <p class="text-xl italic mb-4">"{quote}"</p>
                         <p class="text-right font-semibold">— {author}</p>
                     </div>
