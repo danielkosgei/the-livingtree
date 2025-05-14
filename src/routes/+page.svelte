@@ -152,8 +152,8 @@
         <div class="container mx-auto px-4">
             <h2 class="h2 text-center mb-16">What is The LivingTree?</h2>
             <div class="max-w-3xl mx-auto">
-                <div class="prose prose-lg max-w-none">
-                    <p class="text-xl">
+                <div class="prose prose-lg dark:prose-invert max-w-none">
+                    <p class="text-xl text-surface-900-50-token">
                         The LivingTree is a growing archive of your family's journey, shaped by the people who live it. Each memory shared, each story told, and each connection made adds to your family's living history. Together, we preserve the past while writing the future.
                     </p>
                 </div>
