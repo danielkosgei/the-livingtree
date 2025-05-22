@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Position, useSvelteFlow, type NodeProps } from '@xyflow/svelte';
+  import { Handle, Position, useSvelteFlow, type NodeProps } from '@xyflow/svelte';
  
   let { id, data }: NodeProps = $props();
  
@@ -16,6 +16,10 @@
   <div class="details">Born: {birthYear}</div>
   <div class="details">{isLiving ? 'Living' : 'Deceased'}</div>
 </div>
+<Handle type="target" position={Position.Top} />
+<Handle type="source" position={Position.Bottom} />
+<Handle type="target" position={Position.Left} />
+<Handle type="source" position={Position.Right} />
 
 <style>
   .family-node {
