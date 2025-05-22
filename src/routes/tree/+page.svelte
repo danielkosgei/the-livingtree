@@ -20,6 +20,7 @@
 		const generations: { [key: string]: string[] } = { '0': [] };
 		const processed = new Set<string>();
 		const spouseNodes = new Map<string, Node>();
+		const NODE_SPACING = 300;  // Consistent spacing for all nodes
 
 		// First, find root nodes (nodes without parents)
 		const childrenSet = new Set(
@@ -63,14 +64,20 @@
 		// Create nodes with proper positioning
 		Object.entries(generations).forEach(([generation, memberIds], genIndex) => {
 			const y = genIndex * 250;
+			const totalWidth = memberIds.reduce((acc, id) => {
+				const person = familyData.find(p => p.id === id);
+				return acc + NODE_SPACING * (person?.spouse ? 2 : 1);
+			}, 0);
+			const startX = -totalWidth / 2;
+
+			let currentX = startX;
 			memberIds.forEach((id, indexInGen) => {
 				const person = familyData.find(p => p.id === id);
 				if (person) {
-					const x = (indexInGen - (memberIds.length - 1) / 2) * 300;
 					const node = {
 						id: person.id,
 						type: 'memberUpdater',
-						position: { x, y },
+						position: { x: currentX, y },
 						data: {
 							label: person.name,
 							birthYear: person.birthYear,
@@ -86,7 +93,7 @@
 						const spouseNode = {
 							id: spouseId,
 							type: 'memberUpdater',
-							position: { x: x + 300, y },
+							position: { x: currentX + NODE_SPACING, y },
 							data: {
 								label: person.spouse.name,
 								birthYear: person.spouse.birthYear,
@@ -98,7 +105,6 @@
 						nodes.push(spouseNode);
 						spouseNodes.set(spouseId, spouseNode);
 
-						// Add marriage edge with side handles
 						edges.push({
 							id: `marriage-${person.id}-${spouseId}`,
 							source: person.id,
@@ -108,7 +114,11 @@
 							sourceHandle: 'spouse-out',
 							targetHandle: 'spouse-in'
 						});
+
+						currentX += NODE_SPACING;  // Add spacing for spouse
 					}
+
+					currentX += NODE_SPACING;  // Standard spacing to next family member
 				}
 			});
 		});
