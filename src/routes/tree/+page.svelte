@@ -360,25 +360,33 @@
 		}
 	}
 
-	function shareAsLink() {
+	async function shareAsLink() {
 		try {
 			// Convert family data to base64
 			const jsonStr = JSON.stringify(familyData);
 			const base64Data = btoa(encodeURIComponent(jsonStr));
 			
-			// Create URL with data
+			// Create full URL
 			const url = new URL(window.location.href);
 			url.searchParams.set('data', base64Data);
+			const longUrl = url.toString();
+
+			// Create short URL using TinyURL's API
+			const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+			if (!response.ok) throw new Error('Failed to create short URL');
+			
+			const shortUrl = await response.text();
 			
 			// Copy to clipboard
-			navigator.clipboard.writeText(url.toString())
+			navigator.clipboard.writeText(shortUrl)
 				.then(() => alert('Share link copied to clipboard!'))
 				.catch(() => {
 					// Fallback if clipboard API fails
-					prompt('Copy this share link:', url.toString());
+					prompt('Copy this share link:', shortUrl);
 				});
 		} catch (error) {
-			alert('Failed to generate share link. The family tree might be too large.');
+			console.error('Error creating share link:', error);
+			alert('Failed to generate share link. Please try again.');
 		}
 	}
 </script>
