@@ -2,6 +2,7 @@
 	import { SvelteFlow, Controls, Background, Panel, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
+	import { toPng } from 'html-to-image';
 
 	import type { FamilyData, FamilyMember } from '$lib/types/family';
 	import MemberNode from '$lib/nodes/MemberNode.svelte';
@@ -13,14 +14,34 @@
 	let familyData: FamilyData = [];
 	let nodes: Node[] = [];
 	let edges: Edge[] = [];
+	let flowInstance: SvelteFlow;
 
 	onMount(() => {
 		// Load from localStorage or use default data
-		const savedData = localStorage.getItem('familyTreeData');
-		if (savedData) {
-			familyData = JSON.parse(savedData);
+		const url = new URL(window.location.href);
+		const sharedData = url.searchParams.get('data');
+
+		if (sharedData) {
+			try {
+				const jsonStr = decodeURIComponent(atob(sharedData));
+				familyData = JSON.parse(jsonStr);
+			} catch (error) {
+				// If shared data is invalid, load from localStorage or default
+				const savedData = localStorage.getItem('familyTreeData');
+				if (savedData) {
+					familyData = JSON.parse(savedData);
+				} else {
+					familyData = defaultFamilyData as FamilyData;
+				}
+			}
 		} else {
-			familyData = defaultFamilyData as FamilyData;
+			// No shared data, load from localStorage or default
+			const savedData = localStorage.getItem('familyTreeData');
+			if (savedData) {
+				familyData = JSON.parse(savedData);
+			} else {
+				familyData = defaultFamilyData as FamilyData;
+			}
 		}
 		const { nodes: initialNodes, edges: initialEdges } = generateTree(familyData);
 		nodes = initialNodes;
@@ -32,10 +53,26 @@
 			updateMember(id, updates);
 		}) as EventListener);
 
+		// Listen for node selection
+		document.addEventListener('nodeSelect', ((e: CustomEvent) => {
+			const { id, selected } = e.detail;
+			nodes = nodes.map(n => ({
+				...n,
+				data: { ...n.data, selected: n.id === id ? selected : false }
+			}));
+		}) as EventListener);
+
 		return () => {
 			document.removeEventListener('memberUpdate', ((e: CustomEvent) => {
 				const { id, updates } = e.detail;
 				updateMember(id, updates);
+			}) as EventListener);
+			document.removeEventListener('nodeSelect', ((e: CustomEvent) => {
+				const { id, selected } = e.detail;
+				nodes = nodes.map(n => ({
+					...n,
+					data: { ...n.data, selected: n.id === id ? selected : false }
+				}));
 			}) as EventListener);
 		};
 	});
@@ -289,12 +326,68 @@
 		// Reset input so the same file can be imported again if needed
 		input.value = '';
 	}
+
+	async function exportAsPNG() {
+		// Get the flow element
+		const flowElement = document.querySelector('.svelte-flow') as HTMLElement;
+		if (!flowElement) return;
+
+		try {
+			// Center the view
+			if (flowInstance) {
+				flowInstance.fitView();
+				// Wait for the view transition
+				await new Promise(resolve => setTimeout(resolve, 500));
+			}
+
+			// Convert to PNG
+			const dataUrl = await toPng(flowElement, {
+				backgroundColor: 'white',
+				pixelRatio: 2,
+				style: {
+					width: '100%',
+					height: '100%'
+				}
+			});
+
+			// Download the image
+			const link = document.createElement('a');
+			link.download = 'family-tree.png';
+			link.href = dataUrl;
+			link.click();
+		} catch (error) {
+			alert('Failed to export as PNG. Please try again.');
+		}
+	}
+
+	function shareAsLink() {
+		try {
+			// Convert family data to base64
+			const jsonStr = JSON.stringify(familyData);
+			const base64Data = btoa(encodeURIComponent(jsonStr));
+			
+			// Create URL with data
+			const url = new URL(window.location.href);
+			url.searchParams.set('data', base64Data);
+			
+			// Copy to clipboard
+			navigator.clipboard.writeText(url.toString())
+				.then(() => alert('Share link copied to clipboard!'))
+				.catch(() => {
+					// Fallback if clipboard API fails
+					prompt('Copy this share link:', url.toString());
+				});
+		} catch (error) {
+			alert('Failed to generate share link. The family tree might be too large.');
+		}
+	}
 </script>
 
 <div style:width="100vw" style:height="100vh">
 	<SvelteFlow 
 		bind:nodes 
 		bind:edges 
+		bind:this={flowInstance}
 		{nodeTypes} 
 		fitView
 	>
@@ -327,27 +420,43 @@
 					</div>
 				{/if}
 				<div class="data-controls">
-					<div class="import-wrapper">
-						<input
-							type="file"
-							id="import-file"
-							accept=".json"
-							onchange={importData}
-							class="hidden"
-						/>
+					<div class="button-group">
+						<div class="import-wrapper">
+							<input
+								type="file"
+								id="import-file"
+								accept=".json"
+								onchange={importData}
+								class="hidden"
+							/>
+							<button 
+								onclick={() => document.getElementById('import-file')?.click()}
+								class="secondary"
+							>
+								Import
+							</button>
+						</div>
 						<button 
-							onclick={() => document.getElementById('import-file')?.click()}
+							onclick={exportData}
 							class="secondary"
 						>
-							Import Tree
+							Export JSON
 						</button>
 					</div>
-					<button 
-						onclick={exportData}
-						class="secondary"
-					>
-						Export Tree
-					</button>
+					<div class="button-group">
+						<button 
+							onclick={exportAsPNG}
+							class="secondary"
+						>
+							Save as PNG
+						</button>
+						<button 
+							onclick={shareAsLink}
+							class="secondary"
+						>
+							Share Link
+						</button>
+					</div>
 					<button 
 						onclick={resetToDefault}
 						class="secondary warning"
@@ -399,7 +508,10 @@
 	.button-group {
 		display: flex;
 		gap: 8px;
-		margin-top: 8px;
+	}
+
+	.button-group button {
+		flex: 1;
 	}
 
 	.import-wrapper {
@@ -412,8 +524,8 @@
 	}
 
 	.data-controls {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		display: flex;
+		flex-direction: column;
 		gap: 8px;
 		margin-top: 8px;
 		padding-top: 8px;

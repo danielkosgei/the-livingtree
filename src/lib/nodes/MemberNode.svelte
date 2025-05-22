@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Handle, Position, useSvelteFlow, type NodeProps } from '@xyflow/svelte';
+  import { Handle, Position, type NodeProps } from '@xyflow/svelte';
   import type { FamilyMember } from '$lib/types/family';
  
   interface NodeData {
@@ -11,16 +11,19 @@
   }
 
   let { id, data } = $props() as NodeProps & { data: NodeData };
-  let { updateNodeData } = useSvelteFlow();
 
-  let isEditing = false;
-  let editName = data.label;
-  let editBirthYear = data.birthYear;
-  let editIsLiving = data.isLiving;
+  let isEditing = $state(false);
+  let editName = $state(data.label);
+  let editBirthYear = $state(data.birthYear);
+  let editIsLiving = $state(data.isLiving);
 
   function handleClick() {
     if (!data.isSpouse) {
-      updateNodeData(id, { ...data, selected: !data.selected });
+      const event = new CustomEvent('nodeSelect', {
+        detail: { id, selected: !data.selected },
+        bubbles: true
+      });
+      document.dispatchEvent(event);
     }
   }
 
