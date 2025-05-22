@@ -1,16 +1,51 @@
 <script lang="ts">
 	import { SvelteFlow, Controls, Background, Panel, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
+	import { onMount } from 'svelte';
 
-	import familyData from '$lib/data/family.json';
 	import type { FamilyData, FamilyMember } from '$lib/types/family';
 	import MemberNode from '$lib/nodes/MemberNode.svelte';
+	import defaultFamilyData from '$lib/data/family.json';
 
 	const nodeTypes = { memberUpdater: MemberNode };
-    const { nodes: initialNodes, edges: initialEdges } = generateTree(familyData as FamilyData);
 
-    let nodes = initialNodes;
-    let edges = initialEdges;
+	// Family data store
+	let familyData: FamilyData = [];
+	let nodes: Node[] = [];
+	let edges: Edge[] = [];
+
+	onMount(() => {
+		// Load from localStorage or use default data
+		const savedData = localStorage.getItem('familyTreeData');
+		if (savedData) {
+			familyData = JSON.parse(savedData);
+		} else {
+			familyData = defaultFamilyData as FamilyData;
+		}
+		const { nodes: initialNodes, edges: initialEdges } = generateTree(familyData);
+		nodes = initialNodes;
+		edges = initialEdges;
+
+		// Listen for member updates
+		document.addEventListener('memberUpdate', ((e: CustomEvent) => {
+			const { id, updates } = e.detail;
+			updateMember(id, updates);
+		}) as EventListener);
+
+		return () => {
+			document.removeEventListener('memberUpdate', ((e: CustomEvent) => {
+				const { id, updates } = e.detail;
+				updateMember(id, updates);
+			}) as EventListener);
+		};
+	});
+
+	// Save changes to localStorage
+	$: {
+		if (familyData.length > 0) {
+			localStorage.setItem('familyTreeData', JSON.stringify(familyData));
+		}
+	}
 
 	$: selectedNode = nodes.find(n => n.data.selected)?.id || null;
 
@@ -143,68 +178,116 @@
 		return { nodes, edges };
 	}
 
-	function addNewMember() {
-		const newId = (nodes.length + 1).toString();
-		const x = nodes.length > 0 
-			? Math.max(...nodes.map(n => n.position.x)) + 300 
-			: 0;
-		const newNode = {
-			id: newId,
-			type: 'memberUpdater',
-			position: { x, y: 0 },
-			data: {
-				label: 'New Member',
-				birthYear: new Date().getFullYear(),
-				isLiving: true,
-				selected: false,
-				spouse: null
-			}
-		};
-		nodes = [...nodes, newNode];
+	function updateMember(memberId: string, updates: Partial<FamilyMember>) {
+		familyData = familyData.map(member => 
+			member.id === memberId ? { ...member, ...updates } : member
+		);
+		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+		nodes = updatedNodes;
+		edges = updatedEdges;
 	}
 
-	function connectNodes() {
+	function addChild() {
 		if (!selectedNode) return;
 		
-		const newId = (nodes.length + 1).toString();
-		const parentNode = nodes.find(n => n.id === selectedNode);
-		if (!parentNode) return;
+		const parent = familyData.find(m => m.id === selectedNode);
+		if (!parent) return;
 
-		const siblings = nodes.filter(n => 
-			edges.some(e => e.source === selectedNode && e.target === n.id)
-		);
-		
-		const y = parentNode.position.y + 250;
-		const x = siblings.length > 0
-			? Math.max(...siblings.map(n => n.position.x)) + 300
-			: parentNode.position.x;
-		
-		const newNode = {
+		const newId = Date.now().toString(); // Simple unique ID
+		const newMember: FamilyMember = {
 			id: newId,
-			type: 'memberUpdater',
-			position: { x, y },
-			data: {
-				label: 'New Child',
-				birthYear: new Date().getFullYear(),
-				isLiving: true,
-				selected: false
+			name: 'New Member',
+			birthYear: new Date().getFullYear(),
+			isLiving: true,
+			children: []
+		};
+
+		// Add to family data
+		familyData = [...familyData, newMember];
+		
+		// Update parent's children
+		familyData = familyData.map(member => 
+			member.id === selectedNode 
+				? { ...member, children: [...(member.children || []), newId] }
+				: member
+		);
+
+		// Regenerate tree
+		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+		nodes = updatedNodes;
+		edges = updatedEdges;
+	}
+
+	function addSpouse() {
+		if (!selectedNode) return;
+		
+		const member = familyData.find(m => m.id === selectedNode);
+		if (!member || member.spouse) return;
+
+		const spouseId = `spouse-${Date.now()}`;
+		const spouse = {
+			name: 'New Spouse',
+			birthYear: new Date().getFullYear(),
+			isLiving: true
+		};
+
+		// Update member with spouse
+		familyData = familyData.map(m => 
+			m.id === selectedNode 
+				? { ...m, spouse }
+				: m
+		);
+
+		// Regenerate tree
+		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+		nodes = updatedNodes;
+		edges = updatedEdges;
+	}
+
+	function exportData() {
+		const dataStr = JSON.stringify(familyData, null, 2);
+		const dataBlob = new Blob([dataStr], { type: 'application/json' });
+		const url = URL.createObjectURL(dataBlob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'family-tree.json';
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
+	function resetToDefault() {
+		if (confirm('Reset to default family tree? This will erase your changes.')) {
+			familyData = familyData as FamilyData;
+			localStorage.removeItem('familyTreeData');
+			const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+			nodes = updatedNodes;
+			edges = updatedEdges;
+		}
+	}
+
+	function importData(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const importedData = JSON.parse(e.target?.result as string);
+				familyData = importedData;
+				const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+				nodes = updatedNodes;
+				edges = updatedEdges;
+				localStorage.setItem('familyTreeData', JSON.stringify(familyData));
+			} catch (error) {
+				alert('Invalid family tree file. Please make sure it\'s a valid JSON file.');
 			}
 		};
-		
-		const newEdge = {
-			id: `e${selectedNode}-${newId}`,
-			source: selectedNode,
-			target: newId,
-			type: 'smoothstep',
-			animated: false
-		};
-		
-		nodes = nodes.map(n => ({
-			...n,
-			data: { ...n.data, selected: false }
-		}));
-		nodes = [...nodes, newNode];
-		edges = [...edges, newEdge];
+		reader.readAsText(file);
+		// Reset input so the same file can be imported again if needed
+		input.value = '';
 	}
 </script>
 
@@ -219,22 +302,59 @@
 		<Controls />
 		<Panel position="top-right" class="controls">
 			<div class="control-panel">
-				<h3>Family Tree</h3>
+				<h3>Family Tree Editor</h3>
 				{#if selectedNode}
 					<div class="selection-info">
 						<strong>Selected:</strong> {nodes.find(n => n.id === selectedNode)?.data.label}
-						<button 
-							on:click={connectNodes}
-							class="primary"
-						>
-							Add Child
-						</button>
+						<div class="button-group">
+							<button 
+								onclick={addChild}
+								class="primary"
+							>
+								Add Child
+							</button>
+							<button 
+								onclick={addSpouse}
+								class="primary"
+							>
+								Add Spouse
+							</button>
+						</div>
 					</div>
 				{:else}
 					<div class="instructions">
 						<p>Click a member to select it</p>
 					</div>
 				{/if}
+				<div class="data-controls">
+					<div class="import-wrapper">
+						<input
+							type="file"
+							id="import-file"
+							accept=".json"
+							onchange={importData}
+							class="hidden"
+						/>
+						<button 
+							onclick={() => document.getElementById('import-file')?.click()}
+							class="secondary"
+						>
+							Import Tree
+						</button>
+					</div>
+					<button 
+						onclick={exportData}
+						class="secondary"
+					>
+						Export Tree
+					</button>
+					<button 
+						onclick={resetToDefault}
+						class="secondary warning"
+					>
+						Reset to Default
+					</button>
+				</div>
 			</div>
 		</Panel>
 	</SvelteFlow>
@@ -276,19 +396,64 @@
 		font-size: 0.9em;
 	}
 
-	button.primary {
+	.button-group {
+		display: flex;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.import-wrapper {
+		position: relative;
+		display: inline-block;
+	}
+
+	.hidden {
+		display: none;
+	}
+
+	.data-controls {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 8px;
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px solid #eee;
+	}
+
+	button {
 		padding: 8px 16px;
 		border: none;
 		border-radius: 4px;
-		background: #007bff;
-		color: white;
 		font-weight: 500;
 		cursor: pointer;
 		transition: background-color 0.2s;
 	}
 
+	button.primary {
+		background: #007bff;
+		color: white;
+	}
+
 	button.primary:hover {
 		background: #0056b3;
+	}
+
+	button.secondary {
+		background: #e9ecef;
+		color: #495057;
+	}
+
+	button.secondary:hover {
+		background: #dee2e6;
+	}
+
+	button.warning {
+		color: #dc3545;
+	}
+
+	button.warning:hover {
+		background: #dc3545;
+		color: white;
 	}
 
 	strong {

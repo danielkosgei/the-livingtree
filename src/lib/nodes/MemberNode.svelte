@@ -13,6 +13,11 @@
   let { id, data } = $props() as NodeProps & { data: NodeData };
   let { updateNodeData } = useSvelteFlow();
 
+  let isEditing = false;
+  let editName = data.label;
+  let editBirthYear = data.birthYear;
+  let editIsLiving = data.isLiving;
+
   function handleClick() {
     if (!data.isSpouse) {
       updateNodeData(id, { ...data, selected: !data.selected });
@@ -21,8 +26,44 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
-      handleClick();
+      if (isEditing) {
+        saveChanges();
+      } else {
+        handleClick();
+      }
+    } else if (e.key === 'Escape' && isEditing) {
+      cancelEdit();
     }
+  }
+
+  function startEdit() {
+    isEditing = true;
+    editName = data.label;
+    editBirthYear = data.birthYear;
+    editIsLiving = data.isLiving;
+  }
+
+  function saveChanges() {
+    const event = new CustomEvent('memberUpdate', {
+      detail: {
+        id,
+        updates: {
+          name: editName,
+          birthYear: editBirthYear,
+          isLiving: editIsLiving
+        }
+      },
+      bubbles: true
+    });
+    document.dispatchEvent(event);
+    isEditing = false;
+  }
+
+  function cancelEdit() {
+    isEditing = false;
+    editName = data.label;
+    editBirthYear = data.birthYear;
+    editIsLiving = data.isLiving;
   }
 </script>
 
@@ -30,14 +71,71 @@
   class="family-node" 
   class:selected={data.selected}
   class:spouse={data.isSpouse}
-  onclick={handleClick}
+  class:editing={isEditing}
+  onclick={isEditing ? undefined : handleClick}
   onkeydown={handleKeydown}
   tabindex="0"
   role="button"
 >
-  <div class="name">{data.label}</div>
-  <div class="details">Born: {data.birthYear}</div>
-  <div class="details">{data.isLiving ? 'Living' : 'Deceased'}</div>
+  {#if isEditing}
+    <div class="edit-form">
+      <input
+        type="text"
+        bind:value={editName}
+        placeholder="Name"
+        onclick={e => e.stopPropagation()}
+      />
+      <input
+        type="number"
+        bind:value={editBirthYear}
+        placeholder="Birth Year"
+        onclick={e => e.stopPropagation()}
+      />
+      <label class="living-toggle">
+        <input
+          type="checkbox"
+          bind:checked={editIsLiving}
+          onclick={e => e.stopPropagation()}
+        />
+        Living
+      </label>
+      <div class="edit-buttons">
+        <button 
+          class="save" 
+          onclick={e => {
+            e.stopPropagation();
+            saveChanges();
+          }}
+        >
+          Save
+        </button>
+        <button 
+          class="cancel" 
+          onclick={e => {
+            e.stopPropagation();
+            cancelEdit();
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  {:else}
+    <div class="name">{data.label}</div>
+    <div class="details">Born: {data.birthYear}</div>
+    <div class="details">{data.isLiving ? 'Living' : 'Deceased'}</div>
+    {#if !data.isSpouse}
+      <button 
+        class="edit-button" 
+        onclick={e => {
+          e.stopPropagation();
+          startEdit();
+        }}
+      >
+        Edit
+      </button>
+    {/if}
+  {/if}
 </div>
 
 <!-- Parent-child connection handles -->
@@ -76,6 +174,7 @@
     text-align: center;
     font-family: sans-serif;
     cursor: pointer;
+    position: relative;
   }
 
   .family-node.spouse {
@@ -88,6 +187,11 @@
     box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
   }
 
+  .family-node.editing {
+    cursor: default;
+    padding: 15px;
+  }
+
   .name {
     font-weight: bold;
     font-size: 1.2em;
@@ -97,6 +201,80 @@
   .details {
     font-size: 0.9em;
     color: #444;
+  }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .edit-form input[type="text"],
+  .edit-form input[type="number"] {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .living-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    color: #444;
+  }
+
+  .edit-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .edit-buttons button {
+    flex: 1;
+    padding: 4px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .edit-buttons .save {
+    background: #28a745;
+    color: white;
+  }
+
+  .edit-buttons .save:hover {
+    background: #218838;
+  }
+
+  .edit-buttons .cancel {
+    background: #dc3545;
+    color: white;
+  }
+
+  .edit-buttons .cancel:hover {
+    background: #c82333;
+  }
+
+  .edit-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 2px 6px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.7em;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .family-node:hover .edit-button {
+    opacity: 1;
   }
 
   :global(.family-node :where(.svelte-flow__handle)) {
