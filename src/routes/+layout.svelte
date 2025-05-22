@@ -17,6 +17,4 @@
 	});
 </script>
 
-<div class="h-full" data-theme="pine">
-	{@render children()}
-</div>
+{@render children()}

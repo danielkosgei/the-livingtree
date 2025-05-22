@@ -1,0 +1,64 @@
+[
+    {
+        "id": "1",
+        "name": "John Smith",
+        "birthYear": 1940,
+        "isLiving": false,
+        "children": [
+            "2",
+            "3"
+        ],
+        "spouse": {
+            "name": "Mary Smith",
+            "birthYear": 1942,
+            "isLiving": true
+        }
+    },
+    {
+        "id": "2",
+        "name": "Sarah Johnson",
+        "birthYear": 1965,
+        "isLiving": true,
+        "children": [
+            "4",
+            "5"
+        ],
+        "spouse": {
+            "name": "Michael Johnson",
+            "birthYear": 1963,
+            "isLiving": true
+        }
+    },
+    {
+        "id": "3",
+        "name": "Robert Smith",
+        "birthYear": 1968,
+        "isLiving": true,
+        "children": [
+            "6"
+        ]
+    },
+    {
+        "id": "4",
+        "name": "Emily Johnson",
+        "birthYear": 1990,
+        "isLiving": true
+    },
+    {
+        "id": "5",
+        "name": "David Johnson",
+        "birthYear": 1992,
+        "isLiving": true,
+        "spouse": {
+            "name": "Lisa Johnson",
+            "birthYear": 1993,
+            "isLiving": true
+        }
+    },
+    {
+        "id": "6",
+        "name": "James Smith",
+        "birthYear": 1995,
+        "isLiving": true
+    }
+]
