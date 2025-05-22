@@ -5,16 +5,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## ✨ Features
-
-- 🎯 **Interactive Tree View**: Drag, zoom, and pan to explore your family tree
-- 👥 **Easy Editing**: Add family members, spouses, and children with just a few clicks
-- 🔄 **Automatic Layout**: Tree automatically arranges itself with proper spacing and generations
-- 💾 **Local Storage**: Changes are saved in your browser
-- 🔗 **Share Links**: Generate short links to share your family tree with others
-- 📸 **Export as PNG**: Save your family tree as a high-quality image
-- 📥 **Import/Export**: Save and load your family tree as JSON
-
 The LivingTree is an open-source initiative to create a dynamic family history archive that:
 - Goes beyond static records to capture living memories
 - Encourages collaboration across generations
@@ -25,7 +15,7 @@ The LivingTree is an open-source initiative to create a dynamic family history a
 
 *"Families grow branch by branch, and so does this project."*
 
-### 🍃 How to Help (Even Without Code)
+### How to Help (Even Without Code)
 
 ### 1. Improve Documentation
 - Fix typos in our guides
@@ -36,7 +26,7 @@ The LivingTree is an open-source initiative to create a dynamic family history a
 - Share project goals with genealogy communities
 - Document your testing process (blog/video)
 
-### 💻 For Technical Contributors
+### For Technical Contributors
 
 ### 1. Fork the Repository
 1. Click **Fork** at top-right of [the-livingtree repo](https://github.com/yourusername/the-livingtree)
@@ -57,57 +47,20 @@ The LivingTree is an open-source initiative to create a dynamic family history a
     ```
 5. Open a Pull Request (PR)
 
-# Navigate to the project directory
-cd the-livingtree
+## Tech Stack
 
-# Install dependencies
-npm install
+- **SvelteKit**
+- **Visualization**: @xyflow/svelte, D3
 
-# Start the development server
-npm run dev
-```
-
-### Usage
-
-1. **View the Tree**
-   - Pan by dragging the background
-   - Zoom using mouse wheel or pinch gestures
-   - Click nodes to select family members
-
-2. **Edit Family Members**
-   - Click a member to select them
-   - Use "Add Child" to add children
-   - Use "Add Spouse" to add spouses
-   - Hover over a member and click "Edit" to modify their details
-
-3. **Share Your Tree**
-   - Click "Share Link" to generate a short URL
-   - The link will be copied to your clipboard
-   - Anyone with the link can view your tree
-
-4. **Save Your Work**
-   - Changes are automatically saved in your browser
-   - Use "Export JSON" to save a backup file
-   - Use "Import" to restore from a backup
-   - Use "Save as PNG" to create an image of your tree
-
-## 🧩 Tech Stack
-
-- **Frontend**: SvelteKit
-- **Visualization**: @xyflow/svelte
-- **Storage**: Browser LocalStorage
-- **URL Shortening**: TinyURL API
-- **Image Export**: html-to-image
-
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-## 💬 Contact
+## Contact
 
 If you have any questions or suggestions, please open an issue on GitHub.
 
