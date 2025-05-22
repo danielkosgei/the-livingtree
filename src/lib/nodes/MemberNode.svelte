@@ -2,29 +2,19 @@
   import { Handle, Position, useSvelteFlow, type NodeProps } from '@xyflow/svelte';
   import type { FamilyMember } from '$lib/types/family';
  
-  let { id, data }: NodeProps = $props();
-  let { updateNodeData, deleteElements } = useSvelteFlow();
-
-  let isEditing = false;
-  let editData = {
-    label: data?.label as string ?? 'Unnamed',
-    birthYear: data?.birthYear as number ?? 1950,
-    isLiving: data?.isLiving as boolean ?? true
-  };
-
-  function toggleEdit() {
-    isEditing = !isEditing;
-    if (!isEditing) {
-      updateNodeData(id, { ...data, ...editData });
-    }
+  interface NodeData {
+    label: string;
+    birthYear: number;
+    isLiving: boolean;
+    selected?: boolean;
+    isSpouse?: boolean;
   }
 
-  function handleDelete() {
-    deleteElements({ nodes: [{ id }] });
-  }
+  let { id, data } = $props() as NodeProps & { data: NodeData };
+  let { updateNodeData } = useSvelteFlow();
 
   function handleClick() {
-    if (!isEditing) {
+    if (!data.isSpouse) {
       updateNodeData(id, { ...data, selected: !data.selected });
     }
   }
@@ -34,66 +24,47 @@
       handleClick();
     }
   }
-
-  function handleEditKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      toggleEdit();
-    }
-  }
 </script>
- 
+
 <div 
   class="family-node" 
-  class:editing={isEditing}
   class:selected={data.selected}
+  class:spouse={data.isSpouse}
   onclick={handleClick}
   onkeydown={handleKeydown}
   tabindex="0"
   role="button"
 >
-  {#if isEditing}
-    <div class="edit-form">
-      <input 
-        type="text" 
-        bind:value={editData.label} 
-        placeholder="Name"
-      />
-      <input 
-        type="number" 
-        bind:value={editData.birthYear} 
-        placeholder="Birth Year"
-      />
-      <label>
-        <input 
-          type="checkbox" 
-          bind:checked={editData.isLiving} 
-        />
-        Living
-      </label>
-      <div class="buttons">
-        <button onclick={toggleEdit}>Save</button>
-        <button class="delete" onclick={handleDelete}>Delete</button>
-      </div>
-    </div>
-  {:else}
-    <div 
-      class="view-mode" 
-      ondblclick={toggleEdit}
-      onkeydown={handleEditKeydown}
-      role="button" 
-      tabindex="0"
-    >
-      <div class="name">{editData.label}</div>
-      <div class="details">Born: {editData.birthYear}</div>
-      <div class="details">{editData.isLiving ? 'Living' : 'Deceased'}</div>
-    </div>
-  {/if}
+  <div class="name">{data.label}</div>
+  <div class="details">Born: {data.birthYear}</div>
+  <div class="details">{data.isLiving ? 'Living' : 'Deceased'}</div>
 </div>
 
-<Handle type="target" position={Position.Top} />
-<Handle type="source" position={Position.Bottom} />
-<Handle type="target" position={Position.Left} />
-<Handle type="source" position={Position.Right} />
+<!-- Parent-child connection handles -->
+<Handle 
+  type="target" 
+  position={Position.Top} 
+  id="top"
+/>
+<Handle 
+  type="source" 
+  position={Position.Bottom} 
+  id="bottom"
+/>
+
+<!-- Marriage connection handles -->
+<Handle 
+  type="source" 
+  position={Position.Right} 
+  id="spouse-out"
+  style="background: #FF69B4;"
+/>
+<Handle 
+  type="target" 
+  position={Position.Left} 
+  id="spouse-in"
+  style="background: #FF69B4;"
+/>
 
 <style>
   .family-node {
@@ -101,15 +72,15 @@
     background: #f9f9f9;
     border: 2px solid #ccc;
     border-radius: 8px;
-    width: 220px;
+    width: 180px;
     text-align: center;
     font-family: sans-serif;
     cursor: pointer;
   }
 
-  .family-node.editing {
-    background: #fff;
-    border-color: #007bff;
+  .family-node.spouse {
+    border-color: #FF69B4;
+    background: #fff0f5;
   }
 
   .family-node.selected {
@@ -128,40 +99,13 @@
     color: #444;
   }
 
-  .edit-form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  :global(.family-node :where(.svelte-flow__handle)) {
+    width: 8px;
+    height: 8px;
+    background: #555;
   }
 
-  input[type="text"],
-  input[type="number"] {
-    padding: 4px 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  .buttons {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 8px;
-  }
-
-  button {
-    padding: 4px 12px;
-    border: none;
-    border-radius: 4px;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-  }
-
-  button.delete {
-    background: #dc3545;
-  }
-
-  .view-mode {
-    cursor: pointer;
+  :global(.family-node :where(.svelte-flow__handle-right, .svelte-flow__handle-left)) {
+    top: 50%;
   }
 </style>

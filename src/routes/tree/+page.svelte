@@ -19,6 +19,7 @@
 		const edges: Edge[] = [];
 		const generations: { [key: string]: string[] } = { '0': [] };
 		const processed = new Set<string>();
+		const spouseNodes = new Map<string, Node>();
 
 		// First, find root nodes (nodes without parents)
 		const childrenSet = new Set(
@@ -61,12 +62,12 @@
 
 		// Create nodes with proper positioning
 		Object.entries(generations).forEach(([generation, memberIds], genIndex) => {
-			const y = genIndex * 250; // Vertical spacing between generations
+			const y = genIndex * 250;
 			memberIds.forEach((id, indexInGen) => {
 				const person = familyData.find(p => p.id === id);
 				if (person) {
-					const x = (indexInGen - (memberIds.length - 1) / 2) * 300; // Center nodes horizontally
-					nodes.push({
+					const x = (indexInGen - (memberIds.length - 1) / 2) * 300;
+					const node = {
 						id: person.id,
 						type: 'memberUpdater',
 						position: { x, y },
@@ -76,12 +77,43 @@
 							isLiving: person.isLiving,
 							selected: false
 						}
-					});
+					};
+					nodes.push(node);
+
+					// If person has a spouse, create spouse node and marriage edge
+					if (person.spouse) {
+						const spouseId = `spouse-${person.id}`;
+						const spouseNode = {
+							id: spouseId,
+							type: 'memberUpdater',
+							position: { x: x + 300, y },
+							data: {
+								label: person.spouse.name,
+								birthYear: person.spouse.birthYear,
+								isLiving: person.spouse.isLiving,
+								selected: false,
+								isSpouse: true
+							}
+						};
+						nodes.push(spouseNode);
+						spouseNodes.set(spouseId, spouseNode);
+
+						// Add marriage edge with side handles
+						edges.push({
+							id: `marriage-${person.id}-${spouseId}`,
+							source: person.id,
+							target: spouseId,
+							type: 'smoothstep',
+							animated: true,
+							sourceHandle: 'spouse-out',
+							targetHandle: 'spouse-in'
+						});
+					}
 				}
 			});
 		});
 
-		// Create edges
+		// Create parent-child edges
 		familyData.forEach(person => {
 			person.children?.forEach(childId => {
 				if (childId) {
@@ -90,7 +122,9 @@
 						source: person.id,
 						target: childId,
 						type: 'smoothstep',
-						animated: false
+						animated: false,
+						sourceHandle: 'bottom',
+						targetHandle: 'top'
 					});
 				}
 			});
@@ -101,19 +135,19 @@
 
 	function addNewMember() {
 		const newId = (nodes.length + 1).toString();
-		// Position new members at the top center
 		const x = nodes.length > 0 
 			? Math.max(...nodes.map(n => n.position.x)) + 300 
 			: 0;
 		const newNode = {
 			id: newId,
 			type: 'memberUpdater',
-			position: { x, y: 0 }, // Place at top level
+			position: { x, y: 0 },
 			data: {
 				label: 'New Member',
 				birthYear: new Date().getFullYear(),
 				isLiving: true,
-				selected: false
+				selected: false,
+				spouse: null
 			}
 		};
 		nodes = [...nodes, newNode];
@@ -126,12 +160,10 @@
 		const parentNode = nodes.find(n => n.id === selectedNode);
 		if (!parentNode) return;
 
-		// Find all siblings
 		const siblings = nodes.filter(n => 
 			edges.some(e => e.source === selectedNode && e.target === n.id)
 		);
 		
-		// Position new child centered below parent
 		const y = parentNode.position.y + 250;
 		const x = siblings.length > 0
 			? Math.max(...siblings.map(n => n.position.x)) + 300
@@ -157,7 +189,6 @@
 			animated: false
 		};
 		
-		// Deselect parent node
 		nodes = nodes.map(n => ({
 			...n,
 			data: { ...n.data, selected: false }
@@ -178,24 +209,20 @@
 		<Controls />
 		<Panel position="top-right" class="controls">
 			<div class="control-panel">
-				<h3>Family Tree Editor</h3>
-				<div class="instructions">
-					<p>• Double-click any member to edit</p>
-					<p>• Click a member to select it</p>
-				</div>
-				<div class="actions">
-					<button on:click={addNewMember} class="primary">Add New Member</button>
-					<button 
-						on:click={connectNodes}
-						disabled={!selectedNode}
-						class="secondary"
-					>
-						Add Child to Selected
-					</button>
-				</div>
+				<h3>Family Tree</h3>
 				{#if selectedNode}
 					<div class="selection-info">
 						<strong>Selected:</strong> {nodes.find(n => n.id === selectedNode)?.data.label}
+						<button 
+							on:click={connectNodes}
+							class="primary"
+						>
+							Add Child
+						</button>
+					</div>
+				{:else}
+					<div class="instructions">
+						<p>Click a member to select it</p>
 					</div>
 				{/if}
 			</div>
@@ -212,7 +239,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		min-width: 250px;
+		min-width: 200px;
 	}
 
 	h3 {
@@ -225,50 +252,46 @@
 	.instructions {
 		font-size: 0.9em;
 		color: #666;
+		text-align: center;
 	}
 
 	.instructions p {
 		margin: 4px 0;
 	}
 
-	.actions {
+	.selection-info {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		font-size: 0.9em;
 	}
 
-	button {
+	button.primary {
 		padding: 8px 16px;
 		border: none;
 		border-radius: 4px;
+		background: #007bff;
+		color: white;
 		font-weight: 500;
 		cursor: pointer;
 		transition: background-color 0.2s;
 	}
 
-	button.primary {
-		background: #007bff;
-		color: white;
-	}
-
-	button.secondary {
-		background: #6c757d;
-		color: white;
-	}
-
-	button:disabled {
-		background: #ccc;
-		cursor: not-allowed;
-	}
-
-	.selection-info {
-		background: #f8f9fa;
-		padding: 8px;
-		border-radius: 4px;
-		font-size: 0.9em;
+	button.primary:hover {
+		background: #0056b3;
 	}
 
 	strong {
 		color: #495057;
+	}
+
+	:global(.svelte-flow__edge-path) {
+		stroke: #666;
+		stroke-width: 1;
+	}
+
+	:global(.svelte-flow__edge.animated .svelte-flow__edge-path) {
+		stroke: #FF69B4;
+		stroke-width: 2;
 	}
 </style>
