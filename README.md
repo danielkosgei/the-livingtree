@@ -5,7 +5,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-![The LivingTree Demo](https://github.com/user-attachments/assets/bad4ca3b-178c-4f0c-8648-f9c68be94ce3)!
+[![The LivingTree Demo](https://github.com/user-attachments/assets/bad4ca3b-178c-4f0c-8648-f9c68be94ce3)
 
 
 ## Features
