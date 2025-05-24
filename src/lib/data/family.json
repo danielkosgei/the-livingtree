@@ -1,64 +1,154 @@
 [
     {
-        "id": "1",
+        "id": "john",
         "name": "John Smith",
-        "birthYear": 1940,
-        "isLiving": false,
-        "children": [
-            "2",
-            "3"
-        ],
-        "spouse": {
-            "name": "Mary Smith",
-            "birthYear": 1942,
-            "isLiving": true
-        }
-    },
-    {
-        "id": "2",
-        "name": "Sarah Johnson",
-        "birthYear": 1965,
+        "birthYear": 1950,
         "isLiving": true,
-        "children": [
-            "4",
-            "5"
+        "spouses": [
+            {
+                "id": "mary",
+                "name": "Mary Johnson",
+                "birthYear": 1952,
+                "isLiving": true,
+                "marriageYear": 1975,
+                "divorceYear": 1990,
+                "isCurrent": false
+            },
+            {
+                "id": "sarah",
+                "name": "Sarah Williams",
+                "birthYear": 1955,
+                "isLiving": true,
+                "marriageYear": 1992,
+                "isCurrent": true
+            }
         ],
-        "spouse": {
-            "name": "Michael Johnson",
-            "birthYear": 1963,
-            "isLiving": true
-        }
-    },
-    {
-        "id": "3",
-        "name": "Robert Smith",
-        "birthYear": 1968,
-        "isLiving": true,
         "children": [
-            "6"
+            {
+                "id": "michael",
+                "otherParentId": "mary"
+            },
+            {
+                "id": "emily",
+                "otherParentId": "mary"
+            },
+            {
+                "id": "david",
+                "otherParentId": "sarah"
+            }
         ]
     },
     {
-        "id": "4",
-        "name": "Emily Johnson",
-        "birthYear": 1990,
+        "id": "michael",
+        "name": "Michael Smith",
+        "birthYear": 1978,
+        "isLiving": true,
+        "spouses": [
+            {
+                "id": "jessica",
+                "name": "Jessica Brown",
+                "birthYear": 1980,
+                "isLiving": true,
+                "marriageYear": 2005,
+                "isCurrent": true
+            }
+        ],
+        "children": [
+            {
+                "id": "sophia",
+                "otherParentId": "jessica"
+            },
+            {
+                "id": "oliver",
+                "otherParentId": "jessica"
+            }
+        ]
+    },
+    {
+        "id": "emily",
+        "name": "Emily Smith",
+        "birthYear": 1980,
+        "isLiving": true,
+        "spouses": [
+            {
+                "id": "james",
+                "name": "James Wilson",
+                "birthYear": 1979,
+                "isLiving": false,
+                "marriageYear": 2002,
+                "divorceYear": 2010,
+                "isCurrent": false
+            },
+            {
+                "id": "daniel",
+                "name": "Daniel Taylor",
+                "birthYear": 1978,
+                "isLiving": true,
+                "marriageYear": 2012,
+                "isCurrent": true
+            }
+        ],
+        "children": [
+            {
+                "id": "lucas",
+                "otherParentId": "james"
+            },
+            {
+                "id": "emma",
+                "otherParentId": "daniel"
+            }
+        ]
+    },
+    {
+        "id": "david",
+        "name": "David Smith",
+        "birthYear": 1995,
+        "isLiving": true,
+        "spouses": [
+            {
+                "id": "olivia",
+                "name": "Olivia Davis",
+                "birthYear": 1996,
+                "isLiving": true,
+                "marriageYear": 2018,
+                "isCurrent": true
+            }
+        ],
+        "children": [
+            {
+                "id": "lily",
+                "otherParentId": "olivia"
+            }
+        ]
+    },
+    {
+        "id": "sophia",
+        "name": "Sophia Smith",
+        "birthYear": 2008,
         "isLiving": true
     },
     {
-        "id": "5",
-        "name": "David Johnson",
-        "birthYear": 1992,
-        "isLiving": true,
-        "spouse": {
-            "name": "Lisa Johnson",
-            "birthYear": 1993,
-            "isLiving": true
-        }
+        "id": "oliver",
+        "name": "Oliver Smith",
+        "birthYear": 2010,
+        "isLiving": true
     },
     {
-        "id": "6",
-        "name": "James Smith",
-        "birthYear": 1995,
+        "id": "lucas",
+        "name": "Lucas Wilson",
+        "birthYear": 2005,
+        "isLiving": true
+    },
+    {
+        "id": "emma",
+        "name": "Emma Taylor",
+        "birthYear": 2014,
+        "isLiving": true
+    },
+    {
+        "id": "lily",
+        "name": "Lily Smith",
+        "birthYear": 2020,
         "isLiving": true
     }
 ]

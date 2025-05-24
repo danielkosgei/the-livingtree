@@ -2,13 +2,12 @@
 	import { SvelteFlow, Controls, Background, Panel, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
-	import { toPng } from 'html-to-image';
 
 	import type { FamilyData, FamilyMember } from '$lib/types/family';
 	import MemberNode from '$lib/nodes/MemberNode.svelte';
 	import defaultFamilyData from '$lib/data/family.json';
 
-	const nodeTypes = { memberUpdater: MemberNode };
+	const nodeTypes: Record<string, any> = { memberUpdater: MemberNode };
 
 	// Family data store
 	let familyData: FamilyData = [];
@@ -93,10 +92,14 @@
 		const processed = new Set<string>();
 		const spouseNodes = new Map<string, Node>();
 		const NODE_SPACING = 300;  // Consistent spacing for all nodes
+		const SIBLING_SPACING = 100; // Additional spacing between siblings
+		const nodePositions = new Map<string, { x: number; y: number; width: number }>();
 
 		// First, find root nodes (nodes without parents)
 		const childrenSet = new Set(
-			familyData.flatMap(person => person.children || [])
+			familyData.flatMap(person => 
+				(person.children || []).map(child => child.id)
+			)
 		);
 		const rootNodes = familyData
 			.filter(person => !childrenSet.has(person.id))
@@ -114,10 +117,10 @@
 			for (const parentId of generations[currentGen.toString()]) {
 				const parent = familyData.find(p => p.id === parentId);
 				if (parent?.children) {
-					parent.children.forEach(childId => {
-						if (!processed.has(childId)) {
-							generations[(currentGen + 1).toString()].push(childId);
-							processed.add(childId);
+					parent.children.forEach(child => {
+						if (!processed.has(child.id)) {
+							generations[(currentGen + 1).toString()].push(child.id);
+							processed.add(child.id);
 						}
 					});
 				}
@@ -133,81 +136,155 @@
 			}
 		});
 
+		// Calculate required width for each member including their spouses and spacing
+		function calculateMemberWidth(person: FamilyMember | undefined): number {
+			if (!person) return NODE_SPACING;
+			const spouseCount = person.spouses?.length || 0;
+			// Width includes the member node, spouse nodes, and spacing for spouses on both sides
+			return NODE_SPACING * (1 + spouseCount) + SIBLING_SPACING;
+		}
+
 		// Create nodes with proper positioning
 		Object.entries(generations).forEach(([generation, memberIds], genIndex) => {
 			const y = genIndex * 250;
+
+			// First pass: calculate total width needed for the generation
 			const totalWidth = memberIds.reduce((acc, id) => {
 				const person = familyData.find(p => p.id === id);
-				return acc + NODE_SPACING * (person?.spouse ? 2 : 1);
+				return acc + calculateMemberWidth(person);
 			}, 0);
-			const startX = -totalWidth / 2;
 
-			let currentX = startX;
+			let currentX = -totalWidth / 2;
+
+			// Second pass: create and position nodes
 			memberIds.forEach((id, indexInGen) => {
 				const person = familyData.find(p => p.id === id);
-				if (person) {
-					const node = {
-						id: person.id,
-						type: 'memberUpdater',
-						position: { x: currentX, y },
-						data: {
-							label: person.name,
-							birthYear: person.birthYear,
-							isLiving: person.isLiving,
-							selected: false
-						}
-					};
-					nodes.push(node);
+				if (!person) return;
 
-					// If person has a spouse, create spouse node and marriage edge
-					if (person.spouse) {
-						const spouseId = `spouse-${person.id}`;
+				// Calculate the center position for this member
+				const memberWidth = calculateMemberWidth(person);
+				const memberCenterX = currentX + memberWidth / 2;
+
+				// Store member position
+				nodePositions.set(id, {
+					x: memberCenterX,
+					y,
+					width: memberWidth
+				});
+
+				// Create member node
+				const node = {
+					id: person.id,
+					type: 'memberUpdater',
+					position: { x: memberCenterX, y },
+					data: {
+						label: person.name,
+						birthYear: person.birthYear,
+						isLiving: person.isLiving,
+						selected: false
+					}
+				};
+				nodes.push(node);
+
+				// Create nodes and edges for each spouse
+				if (person.spouses?.length) {
+					let leftSpouses = 0;
+					let rightSpouses = 0;
+
+					person.spouses.forEach((spouse, spouseIndex) => {
+						const isLeftSpouse = spouseIndex % 2 === 0;
+						const spouseId = spouse.id || `spouse-${person.id}-${spouseIndex}`;
+
+						// Calculate spouse position
+						let spouseOffset;
+						if (isLeftSpouse) {
+							leftSpouses++;
+							spouseOffset = -leftSpouses;
+						} else {
+							rightSpouses++;
+							spouseOffset = rightSpouses;
+						}
+
 						const spouseNode = {
 							id: spouseId,
 							type: 'memberUpdater',
-							position: { x: currentX + NODE_SPACING, y },
+							position: { 
+								x: memberCenterX + NODE_SPACING * spouseOffset,
+								y 
+							},
 							data: {
-								label: person.spouse.name,
-								birthYear: person.spouse.birthYear,
-								isLiving: person.spouse.isLiving,
+								label: spouse.name,
+								birthYear: spouse.birthYear,
+								isLiving: spouse.isLiving,
 								selected: false,
-								isSpouse: true
+								isSpouse: true,
+								isCurrent: spouse.isCurrent,
+								marriageYear: spouse.marriageYear,
+								divorceYear: spouse.divorceYear
 							}
 						};
 						nodes.push(spouseNode);
 						spouseNodes.set(spouseId, spouseNode);
 
-						edges.push({
-							id: `marriage-${person.id}-${spouseId}`,
-							source: person.id,
-							target: spouseId,
-							type: 'smoothstep',
-							animated: true,
-							sourceHandle: 'spouse-out',
-							targetHandle: 'spouse-in'
-						});
-
-						currentX += NODE_SPACING;  // Add spacing for spouse
-					}
-
-					currentX += NODE_SPACING;  // Standard spacing to next family member
+						if (isLeftSpouse) {
+							edges.push({
+								id: `marriage-${person.id}-${spouseId}`,
+								source: spouseId,
+								target: person.id,
+								type: 'smoothstep',
+								animated: spouse.isCurrent,
+								sourceHandle: 'spouse-out-right',
+								targetHandle: 'spouse-in-left',
+								style: spouse.isCurrent ? '' : 'stroke-dasharray: 5,5'
+							});
+						} else {
+							edges.push({
+								id: `marriage-${person.id}-${spouseId}`,
+								source: person.id,
+								target: spouseId,
+								type: 'smoothstep',
+								animated: spouse.isCurrent,
+								sourceHandle: 'spouse-out-right',
+								targetHandle: 'spouse-in-left',
+								style: spouse.isCurrent ? '' : 'stroke-dasharray: 5,5'
+							});
+						}
+					});
 				}
+
+				// Update currentX for next member
+				currentX += memberWidth;
 			});
 		});
 
 		// Create parent-child edges
 		familyData.forEach(person => {
-			person.children?.forEach(childId => {
-				if (childId) {
+			person.children?.forEach(child => {
+				if (child.id) {
+					// Edge from main parent to child
 					edges.push({
-						id: `e${person.id}-${childId}`,
+						id: `e${person.id}-${child.id}`,
 						source: person.id,
-						target: childId,
+						target: child.id,
 						type: 'smoothstep',
 						animated: false,
 						sourceHandle: 'bottom',
 						targetHandle: 'top'
 					});
+
+					// If there's a spouse parent, add edge from spouse to child
+					if (child.otherParentId) {
+						edges.push({
+							id: `e${child.otherParentId}-${child.id}`,
+							source: child.otherParentId,
+							target: child.id,
+							type: 'smoothstep',
+							animated: false,
+							sourceHandle: 'bottom',
+							targetHandle: 'top',
+							style: 'stroke: #FF69B4; stroke-width: 1;' // Style to match spouse color
+						});
+					}
 				}
 			});
 		});
@@ -215,10 +292,36 @@
 		return { nodes, edges };
 	}
 
-	function updateMember(memberId: string, updates: Partial<FamilyMember>) {
-		familyData = familyData.map(member => 
-			member.id === memberId ? { ...member, ...updates } : member
-		);
+	function updateMember(memberId: string, updates: Partial<FamilyMember> & { isCurrent?: boolean }) {
+		// Check if this is a spouse node
+		const isSpouseNode = memberId.startsWith('spouse-');
+		
+		if (isSpouseNode) {
+			// Extract the parent ID from the spouse ID (format: spouse-parentId-timestamp)
+			const [, parentId] = memberId.split('-');
+			
+			familyData = familyData.map(member => {
+				if (member.id === parentId && member.spouses) {
+					return {
+						...member,
+						spouses: member.spouses.map(spouse => 
+							spouse.id === memberId
+								? { ...spouse, ...updates }
+								: spouse.isCurrent && updates.isCurrent
+									? { ...spouse, isCurrent: false }  // Set other spouses as not current if this one is marked current
+									: spouse
+						)
+					};
+				}
+				return member;
+			});
+		} else {
+			// Regular member update
+			familyData = familyData.map(member => 
+				member.id === memberId ? { ...member, ...updates } : member
+			);
+		}
+
 		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
 		nodes = updatedNodes;
 		edges = updatedEdges;
@@ -235,8 +338,7 @@
 			id: newId,
 			name: 'New Member',
 			birthYear: new Date().getFullYear(),
-			isLiving: true,
-			children: []
+			isLiving: true
 		};
 
 		// Add to family data
@@ -245,7 +347,14 @@
 		// Update parent's children
 		familyData = familyData.map(member => 
 			member.id === selectedNode 
-				? { ...member, children: [...(member.children || []), newId] }
+				? { 
+					...member, 
+					children: [...(member.children || []), { 
+						id: newId,
+						// If parent has a current spouse, set them as other parent
+						otherParentId: member.spouses?.find(s => s.isCurrent)?.id
+					}] 
+				}
 				: member
 		);
 
@@ -257,25 +366,43 @@
 
 	function addSpouse() {
 		if (!selectedNode) return;
-		
 		const member = familyData.find(m => m.id === selectedNode);
-		if (!member || member.spouse) return;
+		if (!member) return;
 
-		const spouseId = `spouse-${Date.now()}`;
-		const spouse = {
+		const spouseId = `spouse-${member.id}-${Date.now()}`;
+		const newSpouse = {
+			id: spouseId,
 			name: 'New Spouse',
 			birthYear: new Date().getFullYear(),
-			isLiving: true
+			isLiving: true,
+			isCurrent: true,
+			marriageYear: new Date().getFullYear()
 		};
 
-		// Update member with spouse
-		familyData = familyData.map(m => 
-			m.id === selectedNode 
-				? { ...m, spouse }
+		// If this is being set as current spouse, update any existing children
+		// to have this spouse as their other parent
+		if (newSpouse.isCurrent) {
+			member.children?.forEach(child => {
+				if (!child.otherParentId) {
+					updateChildParent(child.id, member.id, spouseId);
+				}
+			});
+		}
+
+		// Update member with new spouse
+		familyData = familyData.map(m =>
+			m.id === selectedNode
+				? {
+					...m,
+					spouses: [...(m.spouses || []).map(s => ({
+						...s,
+						isCurrent: false // Set all existing spouses as not current
+					})), newSpouse]
+				}
 				: m
 		);
 
-		// Regenerate tree
+		// Regenerate the tree
 		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
 		nodes = updatedNodes;
 		edges = updatedEdges;
@@ -327,39 +454,6 @@
 		input.value = '';
 	}
 
-	async function exportAsPNG() {
-		// Get the flow element
-		const flowElement = document.querySelector('.svelte-flow') as HTMLElement;
-		if (!flowElement) return;
-
-		try {
-			// Center the view
-			if (flowInstance) {
-				flowInstance.fitView();
-				// Wait for the view transition
-				await new Promise(resolve => setTimeout(resolve, 500));
-			}
-
-			// Convert to PNG
-			const dataUrl = await toPng(flowElement, {
-				backgroundColor: 'white',
-				pixelRatio: 2,
-				style: {
-					width: '100%',
-					height: '100%'
-				}
-			});
-
-			// Download the image
-			const link = document.createElement('a');
-			link.download = 'family-tree.png';
-			link.href = dataUrl;
-			link.click();
-		} catch (error) {
-			alert('Failed to export as PNG. Please try again.');
-		}
-	}
-
 	async function shareAsLink() {
 		try {
 			// Convert family data to base64
@@ -388,6 +482,27 @@
 			console.error('Error creating share link:', error);
 			alert('Failed to generate share link. Please try again.');
 		}
+	}
+
+	// Add function to update child's other parent
+	function updateChildParent(childId: string, parentId: string, spouseId: string | undefined) {
+		familyData = familyData.map(member => {
+			if (member.id === parentId) {
+				return {
+					...member,
+					children: member.children?.map(child => 
+						child.id === childId
+							? { ...child, otherParentId: spouseId }
+							: child
+					)
+				};
+			}
+			return member;
+		});
+
+		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+		nodes = updatedNodes;
+		edges = updatedEdges;
 	}
 </script>
 
@@ -452,12 +567,6 @@
 						</button>
 					</div>
 					<div class="button-group">
-						<button 
-							onclick={exportAsPNG}
-							class="secondary"
-						>
-							Save as PNG
-						</button>
 						<button 
 							onclick={shareAsLink}
 							class="secondary"

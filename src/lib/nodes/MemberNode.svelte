@@ -8,6 +8,9 @@
     isLiving: boolean;
     selected?: boolean;
     isSpouse?: boolean;
+    isCurrent?: boolean;
+    marriageYear?: number;
+    divorceYear?: number;
   }
 
   let { id, data } = $props() as NodeProps & { data: NodeData };
@@ -16,6 +19,9 @@
   let editName = $state(data.label);
   let editBirthYear = $state(data.birthYear);
   let editIsLiving = $state(data.isLiving);
+  let editMarriageYear = $state(data.marriageYear || new Date().getFullYear());
+  let editDivorceYear = $state(data.divorceYear);
+  let editIsCurrent = $state(data.isCurrent || false);
 
   function handleClick() {
     if (!data.isSpouse) {
@@ -44,19 +50,31 @@
     editName = data.label;
     editBirthYear = data.birthYear;
     editIsLiving = data.isLiving;
+    if (data.isSpouse) {
+        editMarriageYear = data.marriageYear || new Date().getFullYear();
+        editDivorceYear = data.divorceYear;
+        editIsCurrent = data.isCurrent || false;
+    }
   }
 
   function saveChanges() {
+    const updates = {
+        name: editName,
+        birthYear: editBirthYear,
+        isLiving: editIsLiving
+    };
+
+    if (data.isSpouse) {
+        Object.assign(updates, {
+            marriageYear: editMarriageYear,
+            divorceYear: editDivorceYear,
+            isCurrent: editIsCurrent
+        });
+    }
+
     const event = new CustomEvent('memberUpdate', {
-      detail: {
-        id,
-        updates: {
-          name: editName,
-          birthYear: editBirthYear,
-          isLiving: editIsLiving
-        }
-      },
-      bubbles: true
+        detail: { id, updates },
+        bubbles: true
     });
     document.dispatchEvent(event);
     isEditing = false;
@@ -67,6 +85,11 @@
     editName = data.label;
     editBirthYear = data.birthYear;
     editIsLiving = data.isLiving;
+    if (data.isSpouse) {
+        editMarriageYear = data.marriageYear || new Date().getFullYear();
+        editDivorceYear = data.divorceYear;
+        editIsCurrent = data.isCurrent || false;
+    }
   }
 </script>
 
@@ -102,6 +125,28 @@
         />
         Living
       </label>
+      {#if data.isSpouse}
+          <input
+              type="number"
+              bind:value={editMarriageYear}
+              placeholder="Marriage Year"
+              onclick={e => e.stopPropagation()}
+          />
+          <input
+              type="number"
+              bind:value={editDivorceYear}
+              placeholder="Divorce Year"
+              onclick={e => e.stopPropagation()}
+          />
+          <label class="current-toggle">
+              <input
+                  type="checkbox"
+                  bind:checked={editIsCurrent}
+                  onclick={e => e.stopPropagation()}
+              />
+              Current Spouse
+          </label>
+      {/if}
       <div class="edit-buttons">
         <button 
           class="save" 
@@ -127,17 +172,28 @@
     <div class="name">{data.label}</div>
     <div class="details">Born: {data.birthYear}</div>
     <div class="details">{data.isLiving ? 'Living' : 'Deceased'}</div>
-    {#if !data.isSpouse}
-      <button 
+    {#if data.isSpouse}
+        <div class="marriage-details">
+            {#if data.marriageYear}
+                <div class="details">Married: {data.marriageYear}</div>
+            {/if}
+            {#if data.divorceYear}
+                <div class="details">Divorced: {data.divorceYear}</div>
+            {/if}
+            {#if data.isCurrent}
+                <div class="current-spouse">Current Spouse</div>
+            {/if}
+        </div>
+    {/if}
+    <button 
         class="edit-button" 
         onclick={e => {
-          e.stopPropagation();
-          startEdit();
+            e.stopPropagation();
+            startEdit();
         }}
-      >
+    >
         Edit
-      </button>
-    {/if}
+    </button>
   {/if}
 </div>
 
@@ -153,18 +209,32 @@
   id="bottom"
 />
 
-<!-- Marriage connection handles -->
+<!-- Marriage connection handles - Left side -->
 <Handle 
   type="source" 
-  position={Position.Right} 
-  id="spouse-out"
-  style="background: #FF69B4;"
+  position={Position.Left} 
+  id="spouse-out-left"
+  style="background: #FF69B4; left: -6px;"
 />
 <Handle 
   type="target" 
   position={Position.Left} 
-  id="spouse-in"
-  style="background: #FF69B4;"
+  id="spouse-in-left"
+  style="background: #FF69B4; left: -6px;"
+/>
+
+<!-- Marriage connection handles - Right side -->
+<Handle 
+  type="source" 
+  position={Position.Right} 
+  id="spouse-out-right"
+  style="background: #FF69B4; right: -6px;"
+/>
+<Handle 
+  type="target" 
+  position={Position.Right} 
+  id="spouse-in-right"
+  style="background: #FF69B4; right: -6px;"
 />
 
 <style>
@@ -288,5 +358,33 @@
 
   :global(.family-node :where(.svelte-flow__handle-right, .svelte-flow__handle-left)) {
     top: 50%;
+  }
+
+  :global(.family-node .svelte-flow__handle-left) {
+    left: -6px;
+  }
+
+  :global(.family-node .svelte-flow__handle-right) {
+    right: -6px;
+  }
+
+  .marriage-details {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #666;
+  }
+
+  .current-spouse {
+    color: #28a745;
+    font-weight: bold;
+    margin-top: 4px;
+  }
+
+  .current-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    color: #444;
   }
 </style>
