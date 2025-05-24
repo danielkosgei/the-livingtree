@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SvelteFlow, Controls, Background, MiniMap, Panel, type Node, type Edge } from '@xyflow/svelte';
+	import { SvelteFlow, Controls, Background, MiniMap, Panel, type Node, type Edge, type ColorMode } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
 
@@ -10,10 +10,13 @@
 	const nodeTypes: Record<string, any> = { memberUpdater: MemberNode };
 
 	// Family data store
-	let familyData: FamilyData = [];
-	let nodes: Node[] = [];
-	let edges: Edge[] = [];
-	let flowInstance: SvelteFlow;
+	let familyData: FamilyData = $state<FamilyData>([]);
+	let nodes = $state<Node[]>([]);
+	let edges = $state<Edge[]>([]);
+	let flowInstance = $state<SvelteFlow | undefined>(undefined);
+
+	// Color Mode
+	let colorMode = $state<ColorMode>('system');
 
 	onMount(() => {
 		// Load from localStorage or use default data
@@ -77,13 +80,13 @@
 	});
 
 	// Save changes to localStorage
-	$: {
+	$effect(() => {
 		if (familyData.length > 0) {
 			localStorage.setItem('familyTreeData', JSON.stringify(familyData));
 		}
-	}
+	});
 
-	$: selectedNode = nodes.find(n => n.data.selected)?.id || null;
+	let selectedNode = $derived(nodes.find(n => n.data.selected)?.id || null);
 
 	function generateTree(familyData: FamilyData) {
 		const nodes: Node[] = [];
@@ -545,6 +548,11 @@
 		/>
 		<Controls />
 		<Panel position="top-right" class="controls">
+			<select bind:value={colorMode}>
+				<option value="dark">dark</option>
+				<option value="light">light</option>
+				<option value="system">system</option>
+			</select>
 			<div class="control-panel">
 				<h3>Family Tree Editor</h3>
 				{#if selectedNode}
@@ -621,6 +629,41 @@
 </div>
 
 <style>
+	:global(.svelte-flow) {
+		--xy-edge-stroke-default: #555;
+		--xy-edge-stroke-width-default: 1.5;
+		--xy-minimap-background-color-default: #fff;
+		--xy-background-pattern-dot-color-default: #e9ecef;
+		--xy-controls-button-background-color-default: #fff;
+		--xy-controls-button-border-color-default: #ddd;
+	}
+
+	:global(.svelte-flow__edge-path) {
+		stroke: #555;
+		stroke-width: 1.5;
+	}
+
+	:global(.svelte-flow__edge.animated .svelte-flow__edge-path) {
+		stroke: #FF69B4;
+		stroke-width: 2;
+	}
+
+	:global(.svelte-flow__minimap) {
+		border: 1px solid #ddd;
+	}
+
+	:global(.svelte-flow__controls) {
+		border: 1px solid #ddd;
+		background: white;
+	}
+
+	:global(.svelte-flow__handle) {
+		width: 8px;
+		height: 8px;
+		background-color: #FF69B4;
+		border: 2px solid white;
+	}
+
 	.control-panel {
 		background: white;
 		padding: 16px;
@@ -730,15 +773,5 @@
 
 	strong {
 		color: #495057;
-	}
-
-	:global(.svelte-flow__edge-path) {
-		stroke: #666;
-		stroke-width: 1;
-	}
-
-	:global(.svelte-flow__edge.animated .svelte-flow__edge-path) {
-		stroke: #FF69B4;
-		stroke-width: 2;
 	}
 </style>
