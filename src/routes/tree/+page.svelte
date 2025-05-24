@@ -527,6 +527,7 @@
 
 <div style:width="100vw" style:height="100vh">
 	<SvelteFlow 
+		proOptions={{ hideAttribution: true}}
 		bind:nodes 
 		bind:edges 
 		bind:this={flowInstance}
