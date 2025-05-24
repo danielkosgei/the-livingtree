@@ -98,7 +98,9 @@
 
 		// First, find root nodes (nodes without parents)
 		const childrenSet = new Set(
-			familyData.flatMap(person => person.children || [])
+			familyData.flatMap(person => 
+				(person.children || []).map(child => child.id)
+			)
 		);
 		const rootNodes = familyData
 			.filter(person => !childrenSet.has(person.id))
@@ -116,10 +118,10 @@
 			for (const parentId of generations[currentGen.toString()]) {
 				const parent = familyData.find(p => p.id === parentId);
 				if (parent?.children) {
-					parent.children.forEach(childId => {
-						if (!processed.has(childId)) {
-							generations[(currentGen + 1).toString()].push(childId);
-							processed.add(childId);
+					parent.children.forEach(child => {
+						if (!processed.has(child.id)) {
+							generations[(currentGen + 1).toString()].push(child.id);
+							processed.add(child.id);
 						}
 					});
 				}
@@ -258,17 +260,32 @@
 
 		// Create parent-child edges
 		familyData.forEach(person => {
-			person.children?.forEach(childId => {
-				if (childId) {
+			person.children?.forEach(child => {
+				if (child.id) {
+					// Edge from main parent to child
 					edges.push({
-						id: `e${person.id}-${childId}`,
+						id: `e${person.id}-${child.id}`,
 						source: person.id,
-						target: childId,
+						target: child.id,
 						type: 'smoothstep',
 						animated: false,
 						sourceHandle: 'bottom',
 						targetHandle: 'top'
 					});
+
+					// If there's a spouse parent, add edge from spouse to child
+					if (child.otherParentId) {
+						edges.push({
+							id: `e${child.otherParentId}-${child.id}`,
+							source: child.otherParentId,
+							target: child.id,
+							type: 'smoothstep',
+							animated: false,
+							sourceHandle: 'bottom',
+							targetHandle: 'top',
+							style: 'stroke: #FF69B4; stroke-width: 1;' // Style to match spouse color
+						});
+					}
 				}
 			});
 		});
@@ -322,8 +339,7 @@
 			id: newId,
 			name: 'New Member',
 			birthYear: new Date().getFullYear(),
-			isLiving: true,
-			children: []
+			isLiving: true
 		};
 
 		// Add to family data
@@ -332,7 +348,14 @@
 		// Update parent's children
 		familyData = familyData.map(member => 
 			member.id === selectedNode 
-				? { ...member, children: [...(member.children || []), newId] }
+				? { 
+					...member, 
+					children: [...(member.children || []), { 
+						id: newId,
+						// If parent has a current spouse, set them as other parent
+						otherParentId: member.spouses?.find(s => s.isCurrent)?.id
+					}] 
+				}
 				: member
 		);
 
@@ -357,12 +380,25 @@
 			marriageYear: new Date().getFullYear()
 		};
 
+		// If this is being set as current spouse, update any existing children
+		// to have this spouse as their other parent
+		if (newSpouse.isCurrent) {
+			member.children?.forEach(child => {
+				if (!child.otherParentId) {
+					updateChildParent(child.id, member.id, spouseId);
+				}
+			});
+		}
+
 		// Update member with new spouse
 		familyData = familyData.map(m =>
 			m.id === selectedNode
 				? {
 					...m,
-					spouses: [...(m.spouses || []), newSpouse]
+					spouses: [...(m.spouses || []).map(s => ({
+						...s,
+						isCurrent: false // Set all existing spouses as not current
+					})), newSpouse]
 				}
 				: m
 		);
@@ -480,6 +516,27 @@
 			console.error('Error creating share link:', error);
 			alert('Failed to generate share link. Please try again.');
 		}
+	}
+
+	// Add function to update child's other parent
+	function updateChildParent(childId: string, parentId: string, spouseId: string | undefined) {
+		familyData = familyData.map(member => {
+			if (member.id === parentId) {
+				return {
+					...member,
+					children: member.children?.map(child => 
+						child.id === childId
+							? { ...child, otherParentId: spouseId }
+							: child
+					)
+				};
+			}
+			return member;
+		});
+
+		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+		nodes = updatedNodes;
+		edges = updatedEdges;
 	}
 </script>
 
