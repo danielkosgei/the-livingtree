@@ -2,7 +2,6 @@
 	import { SvelteFlow, Controls, Background, Panel, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
-	import { toPng } from 'html-to-image';
 
 	import type { FamilyData, FamilyMember } from '$lib/types/family';
 	import MemberNode from '$lib/nodes/MemberNode.svelte';
@@ -455,39 +454,6 @@
 		input.value = '';
 	}
 
-	async function exportAsPNG() {
-		// Get the flow element
-		const flowElement = document.querySelector('.svelte-flow') as HTMLElement;
-		if (!flowElement) return;
-
-		try {
-			// Center the view
-			if (flowInstance) {
-				flowInstance.fitView();
-				// Wait for the view transition
-				await new Promise(resolve => setTimeout(resolve, 500));
-			}
-
-			// Convert to PNG
-			const dataUrl = await toPng(flowElement, {
-				backgroundColor: 'white',
-				pixelRatio: 2,
-				style: {
-					width: '100%',
-					height: '100%'
-				}
-			});
-
-			// Download the image
-			const link = document.createElement('a');
-			link.download = 'family-tree.png';
-			link.href = dataUrl;
-			link.click();
-		} catch (error) {
-			alert('Failed to export as PNG. Please try again.');
-		}
-	}
-
 	async function shareAsLink() {
 		try {
 			// Convert family data to base64
@@ -601,12 +567,6 @@
 						</button>
 					</div>
 					<div class="button-group">
-						<button 
-							onclick={exportAsPNG}
-							class="secondary"
-						>
-							Save as PNG
-						</button>
 						<button 
 							onclick={shareAsLink}
 							class="secondary"

@@ -39,7 +39,6 @@
 		"@supabase/supabase-js": "^2.49.4",
 		"@xyflow/svelte": "^1.0.2",
 		"drizzle-orm": "^0.43.1",
-		"html-to-image": "^1.11.13",
 		"postgres": "^3.4.5"
 	}
 }
