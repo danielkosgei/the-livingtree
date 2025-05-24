@@ -21,12 +21,60 @@
 	onMount(() => {
 		// Load from localStorage or use default data
 		const url = new URL(window.location.href);
-		const sharedData = url.searchParams.get('data');
+		const sharedData = url.searchParams.get('d') || url.searchParams.get('data'); // Support both old and new parameter names
 
 		if (sharedData) {
 			try {
-				const jsonStr = decodeURIComponent(atob(sharedData));
-				familyData = JSON.parse(jsonStr);
+				// Decompress the data
+				const decompressedData = decodeURIComponent(
+					atob(sharedData
+						.replace(/-/g, '+')
+						.replace(/_/g, '/')
+					)
+				);
+				const compactData = JSON.parse(decompressedData);
+				
+				// Convert back to full format
+				familyData = compactData.map(member => {
+					const base: FamilyMember = {
+						id: member[0],
+						name: member[1],
+						birthYear: member[2] || null,
+						isLiving: member[3] === 1
+					};
+
+					// Add children if they exist
+					if (member[4]) {
+						base.children = member[4].map(child => {
+							if (typeof child === 'string') {
+								const [childId, otherParentId] = child.split(':');
+								return {
+									id: childId,
+									...(otherParentId && { otherParentId })
+								};
+							}
+							return { id: child };
+						});
+					}
+
+					// Add spouses if they exist
+					if (member[5]) {
+						base.spouses = member[5].map(spouse => {
+							const [id, name, birthYear, isLiving, marriageYear, divorceYear, isCurrent] = spouse.split(':');
+							return {
+								id,
+								name,
+								...(birthYear && { birthYear: parseInt(birthYear) }),
+								isLiving: parseInt(isLiving) === 1,
+								...(marriageYear && { marriageYear: parseInt(marriageYear) }),
+								...(divorceYear && { divorceYear: parseInt(divorceYear) }),
+								isCurrent: parseInt(isCurrent) === 1
+							};
+						});
+					}
+
+					return base;
+				});
 			} catch (error) {
 				// If shared data is invalid, load from localStorage or default
 				const savedData = localStorage.getItem('familyTreeData');
@@ -478,27 +526,76 @@
 
 	async function shareAsLink() {
 		try {
-			// Convert family data to base64
-			const jsonStr = JSON.stringify(familyData);
-			const base64Data = btoa(encodeURIComponent(jsonStr));
+			// Convert family data to a highly compressed format
+			type CompactMember = [
+				string,              // id
+				string,              // name
+				string | number,     // birthYear
+				number,             // isLiving
+				(string | string[])?, // children
+				string[]?            // spouses
+			];
+
+			const compactData = familyData.map((member: FamilyMember) => {
+				// Create a minimal representation
+				const base: CompactMember = [
+					member.id,                    // 0: id
+					member.name,                  // 1: name
+					member.birthYear || '',       // 2: birth year
+					member.isLiving ? 1 : 0       // 3: is living
+				];
+
+				// Add children if they exist
+				if (member.children?.length) {
+					base[4] = member.children.map((child: { id: string; otherParentId?: string }) => 
+						child.otherParentId 
+							? `${child.id}:${child.otherParentId}`
+							: child.id
+					);
+				}
+
+				// Add spouses if they exist
+				if (member.spouses?.length) {
+					base[5] = member.spouses.map((spouse: {
+						id: string;
+						name: string;
+						birthYear?: number | null;
+						isLiving?: boolean;
+						marriageYear?: number;
+						divorceYear?: number;
+						isCurrent?: boolean;
+					}) => [
+						spouse.id,
+						spouse.name,
+						spouse.birthYear || '',
+						spouse.isLiving ? 1 : 0,
+						spouse.marriageYear || '',
+						spouse.divorceYear || '',
+						spouse.isCurrent ? 1 : 0
+					].join(':'));
+				}
+
+				return base;
+			});
+			
+			// Convert to JSON and compress
+			const jsonStr = JSON.stringify(compactData);
+			const compressedData = btoa(encodeURIComponent(jsonStr))
+				.replace(/\+/g, '-')
+				.replace(/\//g, '_')
+				.replace(/=+$/, '');
 			
 			// Create full URL
 			const url = new URL(window.location.href);
-			url.searchParams.set('data', base64Data);
-			const longUrl = url.toString();
-
-			// Create short URL using TinyURL's API
-			const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-			if (!response.ok) throw new Error('Failed to create short URL');
-			
-			const shortUrl = await response.text();
+			url.searchParams.set('d', compressedData); // Use shorter parameter name
+			const fullUrl = url.toString();
 			
 			// Copy to clipboard
-			navigator.clipboard.writeText(shortUrl)
+			await navigator.clipboard.writeText(fullUrl)
 				.then(() => alert('Share link copied to clipboard!'))
 				.catch(() => {
 					// Fallback if clipboard API fails
-					prompt('Copy this share link:', shortUrl);
+					prompt('Copy this share link:', fullUrl);
 				});
 		} catch (error) {
 			console.error('Error creating share link:', error);
