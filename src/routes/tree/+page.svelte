@@ -93,6 +93,8 @@
 		const processed = new Set<string>();
 		const spouseNodes = new Map<string, Node>();
 		const NODE_SPACING = 300;  // Consistent spacing for all nodes
+		const SIBLING_SPACING = 100; // Additional spacing between siblings
+		const nodePositions = new Map<string, { x: number; y: number; width: number }>();
 
 		// First, find root nodes (nodes without parents)
 		const childrenSet = new Set(
@@ -133,70 +135,124 @@
 			}
 		});
 
+		// Calculate required width for each member including their spouses and spacing
+		function calculateMemberWidth(person: FamilyMember | undefined): number {
+			if (!person) return NODE_SPACING;
+			const spouseCount = person.spouses?.length || 0;
+			// Width includes the member node, spouse nodes, and spacing for spouses on both sides
+			return NODE_SPACING * (1 + spouseCount) + SIBLING_SPACING;
+		}
+
 		// Create nodes with proper positioning
 		Object.entries(generations).forEach(([generation, memberIds], genIndex) => {
 			const y = genIndex * 250;
+
+			// First pass: calculate total width needed for the generation
 			const totalWidth = memberIds.reduce((acc, id) => {
 				const person = familyData.find(p => p.id === id);
-				return acc + NODE_SPACING * (1 + (person?.spouses?.length || 0));
+				return acc + calculateMemberWidth(person);
 			}, 0);
-			const startX = -totalWidth / 2;
 
-			let currentX = startX;
+			let currentX = -totalWidth / 2;
+
+			// Second pass: create and position nodes
 			memberIds.forEach((id, indexInGen) => {
 				const person = familyData.find(p => p.id === id);
-				if (person) {
-					const node = {
-						id: person.id,
-						type: 'memberUpdater',
-						position: { x: currentX, y },
-						data: {
-							label: person.name,
-							birthYear: person.birthYear,
-							isLiving: person.isLiving,
-							selected: false
+				if (!person) return;
+
+				// Calculate the center position for this member
+				const memberWidth = calculateMemberWidth(person);
+				const memberCenterX = currentX + memberWidth / 2;
+
+				// Store member position
+				nodePositions.set(id, {
+					x: memberCenterX,
+					y,
+					width: memberWidth
+				});
+
+				// Create member node
+				const node = {
+					id: person.id,
+					type: 'memberUpdater',
+					position: { x: memberCenterX, y },
+					data: {
+						label: person.name,
+						birthYear: person.birthYear,
+						isLiving: person.isLiving,
+						selected: false
+					}
+				};
+				nodes.push(node);
+
+				// Create nodes and edges for each spouse
+				if (person.spouses?.length) {
+					let leftSpouses = 0;
+					let rightSpouses = 0;
+
+					person.spouses.forEach((spouse, spouseIndex) => {
+						const isLeftSpouse = spouseIndex % 2 === 0;
+						const spouseId = spouse.id || `spouse-${person.id}-${spouseIndex}`;
+
+						// Calculate spouse position
+						let spouseOffset;
+						if (isLeftSpouse) {
+							leftSpouses++;
+							spouseOffset = -leftSpouses;
+						} else {
+							rightSpouses++;
+							spouseOffset = rightSpouses;
 						}
-					};
-					nodes.push(node);
 
-					// Create nodes and edges for each spouse
-					if (person.spouses?.length) {
-						person.spouses.forEach((spouse, spouseIndex) => {
-							const spouseId = spouse.id || `spouse-${person.id}-${spouseIndex}`;
-							const spouseNode = {
-								id: spouseId,
-								type: 'memberUpdater',
-								position: { x: currentX + NODE_SPACING * (spouseIndex + 1), y },
-								data: {
-									label: spouse.name,
-									birthYear: spouse.birthYear,
-									isLiving: spouse.isLiving,
-									selected: false,
-									isSpouse: true,
-									isCurrent: spouse.isCurrent,
-									marriageYear: spouse.marriageYear,
-									divorceYear: spouse.divorceYear
-								}
-							};
-							nodes.push(spouseNode);
-							spouseNodes.set(spouseId, spouseNode);
+						const spouseNode = {
+							id: spouseId,
+							type: 'memberUpdater',
+							position: { 
+								x: memberCenterX + NODE_SPACING * spouseOffset,
+								y 
+							},
+							data: {
+								label: spouse.name,
+								birthYear: spouse.birthYear,
+								isLiving: spouse.isLiving,
+								selected: false,
+								isSpouse: true,
+								isCurrent: spouse.isCurrent,
+								marriageYear: spouse.marriageYear,
+								divorceYear: spouse.divorceYear
+							}
+						};
+						nodes.push(spouseNode);
+						spouseNodes.set(spouseId, spouseNode);
 
+						if (isLeftSpouse) {
+							edges.push({
+								id: `marriage-${person.id}-${spouseId}`,
+								source: spouseId,
+								target: person.id,
+								type: 'smoothstep',
+								animated: spouse.isCurrent,
+								sourceHandle: 'spouse-out-right',
+								targetHandle: 'spouse-in-left',
+								style: spouse.isCurrent ? '' : 'stroke-dasharray: 5,5'
+							});
+						} else {
 							edges.push({
 								id: `marriage-${person.id}-${spouseId}`,
 								source: person.id,
 								target: spouseId,
 								type: 'smoothstep',
 								animated: spouse.isCurrent,
-								sourceHandle: 'spouse-out',
-								targetHandle: 'spouse-in',
+								sourceHandle: 'spouse-out-right',
+								targetHandle: 'spouse-in-left',
 								style: spouse.isCurrent ? '' : 'stroke-dasharray: 5,5'
 							});
-						});
-						currentX += NODE_SPACING * person.spouses.length;
-					}
-
-					currentX += NODE_SPACING;  // Standard spacing to next family member
+						}
+					});
 				}
+
+				// Update currentX for next member
+				currentX += memberWidth;
 			});
 		});
 

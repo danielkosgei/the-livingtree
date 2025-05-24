@@ -209,18 +209,32 @@
   id="bottom"
 />
 
-<!-- Marriage connection handles -->
+<!-- Marriage connection handles - Left side -->
 <Handle 
   type="source" 
-  position={Position.Right} 
-  id="spouse-out"
-  style="background: #FF69B4;"
+  position={Position.Left} 
+  id="spouse-out-left"
+  style="background: #FF69B4; left: -6px;"
 />
 <Handle 
   type="target" 
   position={Position.Left} 
-  id="spouse-in"
-  style="background: #FF69B4;"
+  id="spouse-in-left"
+  style="background: #FF69B4; left: -6px;"
+/>
+
+<!-- Marriage connection handles - Right side -->
+<Handle 
+  type="source" 
+  position={Position.Right} 
+  id="spouse-out-right"
+  style="background: #FF69B4; right: -6px;"
+/>
+<Handle 
+  type="target" 
+  position={Position.Right} 
+  id="spouse-in-right"
+  style="background: #FF69B4; right: -6px;"
 />
 
 <style>
@@ -344,6 +358,14 @@
 
   :global(.family-node :where(.svelte-flow__handle-right, .svelte-flow__handle-left)) {
     top: 50%;
+  }
+
+  :global(.family-node .svelte-flow__handle-left) {
+    left: -6px;
+  }
+
+  :global(.family-node .svelte-flow__handle-right) {
+    right: -6px;
   }
 
   .marriage-details {
