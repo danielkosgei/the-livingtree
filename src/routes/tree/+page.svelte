@@ -431,6 +431,25 @@
 		}
 	}
 
+	function createNewTree() {
+		if (confirm('Start a new family tree from scratch? This will erase your current tree.')) {
+			// Create a single root member
+			const rootId = Date.now().toString();
+			const newMember: FamilyMember = {
+				id: rootId,
+				name: 'First Member',
+				birthYear: new Date().getFullYear(),
+				isLiving: true
+			};
+			
+			familyData = [newMember];
+			localStorage.setItem('familyTreeData', JSON.stringify(familyData));
+			const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
+			nodes = updatedNodes;
+			edges = updatedEdges;
+		}
+	}
+
 	function importData(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -575,6 +594,12 @@
 						</button>
 					</div>
 					<button 
+						onclick={createNewTree}
+						class="secondary create-new"
+					>
+						Create New Tree
+					</button>
+					<button 
 						onclick={resetToDefault}
 						class="secondary warning"
 					>
@@ -683,6 +708,15 @@
 	button.warning:hover {
 		background: #dc3545;
 		color: white;
+	}
+
+	button.create-new {
+		background: #28a745;
+		color: white;
+	}
+
+	button.create-new:hover {
+		background: #218838;
 	}
 
 	strong {
