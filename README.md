@@ -5,7 +5,20 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[![The LivingTree Demo](https://github.com/user-attachments/assets/bad4ca3b-178c-4f0c-8648-f9c68be94ce3)
+![Development Status](https://img.shields.io/badge/status-early%20development-orange)
+![Stability](https://img.shields.io/badge/stability-experimental-red)
+
+The LivingTree is currently in **very early development**. Expect:
+
+ - Breaking changes without notice
+ - Incomplete documentation
+ - Missing features and components
+ - Bugs and unexpected behavior
+
+Feel free to experiment and provide feedback
+
+
+![The LivingTree Demo](https://github.com/user-attachments/assets/bad4ca3b-178c-4f0c-8648-f9c68be94ce3)
 
 
 ## Features
