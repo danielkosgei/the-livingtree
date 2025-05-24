@@ -16,7 +16,7 @@
 	let flowInstance = $state<SvelteFlow | undefined>(undefined);
 
 	// Color Mode
-	let colorMode = $state<ColorMode>('system');
+	//let colorMode = $state<ColorMode>('system');
 
 	onMount(() => {
 		// Load from localStorage or use default data
@@ -548,11 +548,6 @@
 		/>
 		<Controls />
 		<Panel position="top-right" class="controls">
-			<select bind:value={colorMode}>
-				<option value="dark">dark</option>
-				<option value="light">light</option>
-				<option value="system">system</option>
-			</select>
 			<div class="control-panel">
 				<h3>Family Tree Editor</h3>
 				{#if selectedNode}
