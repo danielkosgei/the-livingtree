@@ -1,15 +1,57 @@
 # 🌳 The LivingTree
 
-**A living, growing family history archive**  
-*Preserving your memories for generations to come*
+**A modern, interactive family tree visualization tool**  
+*Create, share, and explore your family history with ease*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-The LivingTree is an open-source initiative to create a dynamic family history archive that:
-- Goes beyond static records to capture living memories
-- Encourages collaboration across generations
-- Preserves stories in multiple formats (text, audio, video)
-- Respects privacy while celebrating shared heritage
+![The LivingTree Demo](demo.png)
+
+## ✨ Features
+
+### 📊 Interactive Visualization
+- Beautiful, modern interface built with SvelteKit and @xyflow
+- Smooth, intuitive drag-and-drop interaction
+- Automatic layout and spacing of family members
+- Minimap for easy navigation of large trees
+- Zoom and pan controls for detailed exploration
+
+### 👥 Rich Family Relationships
+- Support for multiple marriages/partnerships
+- Visual distinction between current and previous marriages
+- Track marriage years, divorce years, and living status
+- Automatic parent-child relationship management
+- Visual indicators for biological and step-parent relationships
+
+### 🔄 Real-time Editing
+- Click-to-edit any family member's details
+- Add new family members with a single click
+- Add spouses and children seamlessly
+- Automatic updates to family connections
+- Instant visual feedback for all changes
+
+### 💾 Data Management
+- Automatic saving to local storage
+- Export family tree as JSON
+- Import existing family trees
+- Share trees via compressed URL links
+- Start fresh or use example family tree
+
+### 🎨 Visual Design
+- Clean, modern user interface
+- Distinct colors for different relationship types
+- Dashed lines for previous marriages
+- Pink lines for step-parent relationships
+- Responsive design for all screen sizes
+
+### 🛠️ Technical Features
+- Built with modern web technologies
+- TypeScript for type safety
+- Efficient data compression for sharing
+- Modular component architecture
+- Open-source and extensible
+
+## 🚀 Getting Started
 
 ### Installation
 
