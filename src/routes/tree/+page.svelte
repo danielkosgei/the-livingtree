@@ -423,7 +423,7 @@
 
 	function resetToDefault() {
 		if (confirm('Reset to default family tree? This will erase your changes.')) {
-			familyData = familyData as FamilyData;
+			familyData = defaultFamilyData as FamilyData;
 			localStorage.removeItem('familyTreeData');
 			const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
 			nodes = updatedNodes;
