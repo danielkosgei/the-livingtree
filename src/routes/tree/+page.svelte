@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SvelteFlow, Controls, Background, Panel, type Node, type Edge } from '@xyflow/svelte';
+	import { SvelteFlow, Controls, Background, MiniMap, Panel, type Node, type Edge } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
 
@@ -535,6 +535,14 @@
 		fitView
 	>
 		<Background />
+		<MiniMap 
+			nodeColor={(node) => {
+				return node.data?.isSpouse ? '#FF69B4' : '#f9f9f9';
+			}}
+			nodeStrokeColor={(node) => {
+				return node.data?.isSpouse ? '#FF69B4' : '#ccc';
+			}}
+		/>
 		<Controls />
 		<Panel position="top-right" class="controls">
 			<div class="control-panel">
