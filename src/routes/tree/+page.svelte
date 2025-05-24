@@ -8,7 +8,7 @@
 	import MemberNode from '$lib/nodes/MemberNode.svelte';
 	import defaultFamilyData from '$lib/data/family.json';
 
-	const nodeTypes = { memberUpdater: MemberNode };
+	const nodeTypes: Record<string, any> = { memberUpdater: MemberNode };
 
 	// Family data store
 	let familyData: FamilyData = [];
@@ -138,7 +138,7 @@
 			const y = genIndex * 250;
 			const totalWidth = memberIds.reduce((acc, id) => {
 				const person = familyData.find(p => p.id === id);
-				return acc + NODE_SPACING * (person?.spouse ? 2 : 1);
+				return acc + NODE_SPACING * (1 + (person?.spouses?.length || 0));
 			}, 0);
 			const startX = -totalWidth / 2;
 
@@ -159,35 +159,40 @@
 					};
 					nodes.push(node);
 
-					// If person has a spouse, create spouse node and marriage edge
-					if (person.spouse) {
-						const spouseId = `spouse-${person.id}`;
-						const spouseNode = {
-							id: spouseId,
-							type: 'memberUpdater',
-							position: { x: currentX + NODE_SPACING, y },
-							data: {
-								label: person.spouse.name,
-								birthYear: person.spouse.birthYear,
-								isLiving: person.spouse.isLiving,
-								selected: false,
-								isSpouse: true
-							}
-						};
-						nodes.push(spouseNode);
-						spouseNodes.set(spouseId, spouseNode);
+					// Create nodes and edges for each spouse
+					if (person.spouses?.length) {
+						person.spouses.forEach((spouse, spouseIndex) => {
+							const spouseId = spouse.id || `spouse-${person.id}-${spouseIndex}`;
+							const spouseNode = {
+								id: spouseId,
+								type: 'memberUpdater',
+								position: { x: currentX + NODE_SPACING * (spouseIndex + 1), y },
+								data: {
+									label: spouse.name,
+									birthYear: spouse.birthYear,
+									isLiving: spouse.isLiving,
+									selected: false,
+									isSpouse: true,
+									isCurrent: spouse.isCurrent,
+									marriageYear: spouse.marriageYear,
+									divorceYear: spouse.divorceYear
+								}
+							};
+							nodes.push(spouseNode);
+							spouseNodes.set(spouseId, spouseNode);
 
-						edges.push({
-							id: `marriage-${person.id}-${spouseId}`,
-							source: person.id,
-							target: spouseId,
-							type: 'smoothstep',
-							animated: true,
-							sourceHandle: 'spouse-out',
-							targetHandle: 'spouse-in'
+							edges.push({
+								id: `marriage-${person.id}-${spouseId}`,
+								source: person.id,
+								target: spouseId,
+								type: 'smoothstep',
+								animated: spouse.isCurrent,
+								sourceHandle: 'spouse-out',
+								targetHandle: 'spouse-in',
+								style: spouse.isCurrent ? '' : 'stroke-dasharray: 5,5'
+							});
 						});
-
-						currentX += NODE_SPACING;  // Add spacing for spouse
+						currentX += NODE_SPACING * person.spouses.length;
 					}
 
 					currentX += NODE_SPACING;  // Standard spacing to next family member
@@ -215,10 +220,36 @@
 		return { nodes, edges };
 	}
 
-	function updateMember(memberId: string, updates: Partial<FamilyMember>) {
-		familyData = familyData.map(member => 
-			member.id === memberId ? { ...member, ...updates } : member
-		);
+	function updateMember(memberId: string, updates: Partial<FamilyMember> & { isCurrent?: boolean }) {
+		// Check if this is a spouse node
+		const isSpouseNode = memberId.startsWith('spouse-');
+		
+		if (isSpouseNode) {
+			// Extract the parent ID from the spouse ID (format: spouse-parentId-timestamp)
+			const [, parentId] = memberId.split('-');
+			
+			familyData = familyData.map(member => {
+				if (member.id === parentId && member.spouses) {
+					return {
+						...member,
+						spouses: member.spouses.map(spouse => 
+							spouse.id === memberId
+								? { ...spouse, ...updates }
+								: spouse.isCurrent && updates.isCurrent
+									? { ...spouse, isCurrent: false }  // Set other spouses as not current if this one is marked current
+									: spouse
+						)
+					};
+				}
+				return member;
+			});
+		} else {
+			// Regular member update
+			familyData = familyData.map(member => 
+				member.id === memberId ? { ...member, ...updates } : member
+			);
+		}
+
 		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
 		nodes = updatedNodes;
 		edges = updatedEdges;
@@ -257,25 +288,30 @@
 
 	function addSpouse() {
 		if (!selectedNode) return;
-		
 		const member = familyData.find(m => m.id === selectedNode);
-		if (!member || member.spouse) return;
+		if (!member) return;
 
-		const spouseId = `spouse-${Date.now()}`;
-		const spouse = {
+		const spouseId = `spouse-${member.id}-${Date.now()}`;
+		const newSpouse = {
+			id: spouseId,
 			name: 'New Spouse',
 			birthYear: new Date().getFullYear(),
-			isLiving: true
+			isLiving: true,
+			isCurrent: true,
+			marriageYear: new Date().getFullYear()
 		};
 
-		// Update member with spouse
-		familyData = familyData.map(m => 
-			m.id === selectedNode 
-				? { ...m, spouse }
+		// Update member with new spouse
+		familyData = familyData.map(m =>
+			m.id === selectedNode
+				? {
+					...m,
+					spouses: [...(m.spouses || []), newSpouse]
+				}
 				: m
 		);
 
-		// Regenerate tree
+		// Regenerate the tree
 		const { nodes: updatedNodes, edges: updatedEdges } = generateTree(familyData);
 		nodes = updatedNodes;
 		edges = updatedEdges;
